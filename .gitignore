@@ -1,0 +1,5 @@
+app.cfg
+*.pyc
+*.swo
+*.swn
+*.swp
