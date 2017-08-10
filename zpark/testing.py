@@ -31,7 +31,7 @@ class ApiTestCase(TestCase):
 
 class ApiV1TestCase(ApiTestCase):
 
-    ### /alert endpoint
+    ### GET /alert endpoint
     def test_alert_get_w_token(self):
         r = self.client.get(url_for('api_v1.alert'),
                             headers=[self.sb_api_token])
@@ -43,6 +43,7 @@ class ApiV1TestCase(ApiTestCase):
 
         self.assert_405(r)
 
+    ### POST /alert endpoint
     def test_alert_post_valid_alert(self):
         to = u'joel@zpark.packetmischief'
         subject = u'This might ruin your day...'
@@ -50,13 +51,14 @@ class ApiV1TestCase(ApiTestCase):
 
         mock_sparkapi = Mock(name='create')
         # simulate a ciscosparkapi.messages object
-        my_spark_msg = namedtuple('sparkmsg', 'toPersonEmail text id created')
-        mock_sparkapi.return_value = my_spark_msg(
+        my_spark_msg_obj = namedtuple('sparkmsg', 'toPersonEmail text id created')
+        my_spark_msg = my_spark_msg_obj(
             created='2017-08-09T00:26:11.937Z',
             id='id123456',
             toPersonEmail=to,
             text='\n\n'.join([subject, message])
         )
+        mock_sparkapi.return_value = my_spark_msg
 
         with patch.object(zpark.spark_api.messages, 'create', mock_sparkapi):
             r = self.client.post(url_for('api_v1.alert'),
@@ -69,11 +71,29 @@ class ApiV1TestCase(ApiTestCase):
                                  content_type='application/json')
             self.assert_200(r)
             mock_sparkapi.assert_called_once_with(
-                toPersonEmail=to,
-                text='\n\n'.join([subject, message])
+                toPersonEmail=my_spark_msg.toPersonEmail,
+                text=my_spark_msg.text
             )
             rjson = json.loads(r.data)
-            self.assertEqual(rjson['created'], '2017-08-09T00:26:11.937Z')
+            self.assertEqual(rjson['created'], my_spark_msg.created)
+            self.assertEqual(rjson['message'], my_spark_msg.text)
+            self.assertEqual(rjson['message_id'], my_spark_msg.id)
+            self.assertEqual(rjson['to'], my_spark_msg.toPersonEmail)
+
+    def test_alert_post_valid_alert_wo_token(self):
+        to = u'joel@zpark.packetmischief'
+        subject = u'This might ruin your day...'
+        message = u'Your data center is on fire'
+
+        r = self.client.post(url_for('api_v1.alert'),
+                             # no auth token here...
+                             data=json.dumps({
+                                'to': to,
+                                'subject': subject,
+                                'message': message
+                             }),
+                             content_type='application/json')
+        self.assert_401(r)
 
     def test_alert_post_valid_alert_with_spark_api_error(self):
         to = u'joel@zpark.packetmischief'
@@ -91,6 +111,80 @@ class ApiV1TestCase(ApiTestCase):
                                     'message': message
                                  }),
                                  content_type='application/json')
+            self.assert_status(r, 409)
+            mock_sparkapi.assert_called_once_with(
+                toPersonEmail=to,
+                text='\n\n'.join([subject, message])
+            )
+
+    ### DELETE /alert endpoint
+    def test_alert_delete_valid_alert(self):
+        to = u'joel@zpark.packetmischief'
+        subject = u'This might ruin your day...'
+        message = u'Your data center is on fire'
+
+        mock_sparkapi = Mock(name='create')
+        # simulate a ciscosparkapi.messages object
+        my_spark_msg_obj = namedtuple('sparkmsg', 'toPersonEmail text id created')
+        my_spark_msg = my_spark_msg_obj(
+            created='2017-08-09T00:26:11.937Z',
+            id='id123456',
+            toPersonEmail=to,
+            text='\n\n'.join([subject, message])
+        )
+        mock_sparkapi.return_value = my_spark_msg
+
+        with patch.object(zpark.spark_api.messages, 'create', mock_sparkapi):
+            r = self.client.delete(url_for('api_v1.alert'),
+                                 headers=[self.sb_api_token],
+                                 data=json.dumps({
+                                    'to': to,
+                                    'subject': subject,
+                                    'message': message
+                                 }),
+                                 content_type='application/json')
+            self.assert_200(r)
+            mock_sparkapi.assert_called_once_with(
+                toPersonEmail=my_spark_msg.toPersonEmail,
+                text=my_spark_msg.text
+            )
+            rjson = json.loads(r.data)
+            self.assertEqual(rjson['created'], my_spark_msg.created)
+            self.assertEqual(rjson['message'], my_spark_msg.text)
+            self.assertEqual(rjson['message_id'], my_spark_msg.id)
+            self.assertEqual(rjson['to'], my_spark_msg.toPersonEmail)
+
+    def test_alert_delete_valid_alert_wo_token(self):
+        to = u'joel@zpark.packetmischief'
+        subject = u'This might ruin your day...'
+        message = u'Your data center is on fire'
+
+        r = self.client.delete(url_for('api_v1.alert'),
+                               # no auth token here...
+                               data=json.dumps({
+                                   'to': to,
+                                   'subject': subject,
+                                   'message': message
+                               }),
+                               content_type='application/json')
+        self.assert_401(r)
+
+    def test_alert_delete_valid_alert_with_spark_api_error(self):
+        to = u'joel@zpark.packetmischief'
+        subject = u'This might ruin your day...'
+        message = u'Your data center is on fire'
+
+        mock_sparkapi = Mock(name='create', side_effect=SparkApiError(409))
+
+        with patch.object(zpark.spark_api.messages, 'create', mock_sparkapi):
+            r = self.client.delete(url_for('api_v1.alert'),
+                                   headers=[self.sb_api_token],
+                                   data=json.dumps({
+                                       'to': to,
+                                       'subject': subject,
+                                       'message': message
+                                   }),
+                                   content_type='application/json')
             self.assert_status(r, 409)
             mock_sparkapi.assert_called_once_with(
                 toPersonEmail=to,

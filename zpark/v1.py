@@ -12,8 +12,7 @@ api_v1 = Api(api_v1_bp)
 
 class Alert(Resource):
 
-    @api_common.requires_token
-    def post(self):
+    def _parse_alert_args(self):
         parser = reqparse.RequestParser()
         parser.add_argument('to', type=unicode, required=True,
                             location='json',
@@ -26,11 +25,23 @@ class Alert(Resource):
         parser.add_argument('message', type=unicode, required=False,
                             location='json',
                             help='The contents of the alert message. Optional.')
-        args = parser.parse_args()
+        return parser.parse_args()
 
-        return api_common.newalert(args['to'],
-                               args['subject'],
-                               args['message'])
+    @api_common.requires_token
+    def delete(self):
+        args = self._parse_alert_args()
+
+        return api_common.spark_send_alert_message(args['to'],
+                                                   args['subject'],
+                                                   args['message'])
+
+    @api_common.requires_token
+    def post(self):
+        args = self._parse_alert_args()
+
+        return api_common.spark_send_alert_message(args['to'],
+                                                   args['subject'],
+                                                   args['message'])
 
 
 class Ping(Resource):

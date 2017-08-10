@@ -8,7 +8,14 @@ from flask_restful import abort
 from zpark import spark_api
 
 
-def newalert(sendto, subject, message):
+def ping(api_version):
+    return {
+        'hello': 'Hello!',
+        'apiversion': api_version,
+        'utctime': str(dt.utcnow())
+    }
+
+def spark_send_alert_message(sendto, subject, message):
     try:
         msg = spark_api.messages.create(
                 toPersonEmail=sendto,
@@ -23,14 +30,6 @@ def newalert(sendto, subject, message):
         'message_id': msg.id,
         'created': msg.created
     }
-
-def ping(api_version):
-    return {
-        'hello': 'Hello!',
-        'apiversion': api_version,
-        'utctime': str(dt.utcnow())
-    }
-
 
 def requires_token(func):
     @wraps(func)
