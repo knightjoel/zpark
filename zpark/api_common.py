@@ -22,7 +22,7 @@ def spark_send_alert_message(sendto, subject, message):
                 text='\n\n'.join([subject, message]))
     except SparkApiError as e:
         # XXX log the error
-        abort(409)
+        abort(409, message="The Spark API returned an error")
 
     return {
         'to': msg.toPersonEmail,
