@@ -117,6 +117,22 @@ class ApiV1TestCase(ApiTestCase):
                 text='\n\n'.join([subject, message])
             )
 
+    def test_alert_post_valid_alert_to_roomid(self):
+        to = 'Abc1234wxyz'
+        subject = u'This might ruin your day...'
+        message = u'Your data center is on fire'
+
+        r = self.client.post(url_for('api_v1.alert'),
+                             headers=[self.sb_api_token],
+                             data=json.dumps({
+                                'to': to,
+                                'subject': subject,
+                                'message': message
+                             }),
+                             content_type='application/json')
+        self.assert_400(r)
+        self.assertIn('must be an email address', r.data)
+
     ### /ping endpoint
     def test_ping_get_wo_token(self):
         r = self.client.get(url_for('api_v1.ping'))
