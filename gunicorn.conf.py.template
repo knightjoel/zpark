@@ -1,0 +1,12 @@
+import multiprocessing
+
+bind = "unix:/tmp/gunicorn.zpark.sock"
+chdir = "/home/zpark/zpark"
+user = "_zpark"
+group = "_zpark"
+proc_name = "zpark"
+
+accesslog = None
+errorlog = None
+workers = multiprocessing.cpu_count() * 2 + 1
+
