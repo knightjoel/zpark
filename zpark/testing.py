@@ -77,8 +77,9 @@ class ApiV1TestCase(ApiTestCase):
             rjson = json.loads(r.data)
             self.assertEqual(rjson['created'], my_spark_msg.created)
             self.assertEqual(rjson['message'], my_spark_msg.text)
-            self.assertEqual(rjson['message_id'], my_spark_msg.id)
-            self.assertEqual(rjson['to'], my_spark_msg.toPersonEmail)
+            self.assertEqual(rjson['messageId'], my_spark_msg.id)
+            self.assertEqual(rjson['toPersonEmail'],
+                             my_spark_msg.toPersonEmail)
 
     def test_alert_post_valid_alert_wo_token(self):
         to = u'joel@zpark.packetmischief'

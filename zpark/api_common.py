@@ -32,9 +32,9 @@ def spark_send_alert_message(sendto, subject, message):
               message="The Spark API returned an error: {}".format(e))
 
     return {
-        'to': msg.toPersonEmail,
+        'toPersonEmail': msg.toPersonEmail,
         'message': msg.text,
-        'message_id': msg.id,
+        'messageId': msg.id,
         'created': msg.created
     }
 
