@@ -23,7 +23,10 @@ def spark_send_alert_message(sendto, subject, message):
     else:
         msg_args = dict(roomId=sendto)
 
-    msg_args.update(text='\n\n'.join([subject, message]))
+    if message is not None:
+        msg_args.update(text='\n\n'.join([subject, message]))
+    else:
+        msg_args.update(text=subject)
 
     try:
         msg = spark_api.messages.create(**msg_args)

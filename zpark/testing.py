@@ -161,6 +161,62 @@ class ApiV1TestCase(ApiTestCase):
                 text='\n\n'.join([subject, message])
             )
 
+    def _alert_post_missing_input(self, input_):
+        r = self.client.post(url_for('api_v1.alert'),
+                             headers=[self.sb_api_token],
+                             data=json.dumps(input_),
+                             content_type='application/json')
+        self.assert_status(r, 400)
+        self.assertIn('Required', r.data)
+
+    def test_alert_post_missing_to(self):
+        input_ = {
+            # missing 'to'
+            'subject': 'subj',
+            'message': 'mess'
+        }
+
+        self._alert_post_missing_input(input_)
+
+    def test_alert_post_missing_subject(self):
+        input_ = {
+            # missing 'subject'
+            'to': 'joel',
+            'message': 'mess'
+        }
+
+        self._alert_post_missing_input(input_)
+
+    def test_alert_post_missing_message(self):
+        """
+        'message' is allowed to be absent so the result of this test should be
+        an HTTP 200 and a good status message returned from the API.
+        """
+        input_ = {
+            # missing 'message'
+            'to': 'joel',
+            'subject': 'subj',
+        }
+        mock_sparkapi = Mock(name='create')
+        # simulate a ciscosparkapi.messages object
+        my_spark_msg_obj = namedtuple('sparkmsg',
+                                      'toPersonEmail roomId text id created')
+        my_spark_msg = my_spark_msg_obj(
+            created='2017-08-09T00:26:11.937Z',
+            id='id123456',
+            roomId=None,
+            toPersonEmail=input_['to'],
+            text=input_['subject']
+        )
+        mock_sparkapi.return_value = my_spark_msg
+
+        with patch.object(zpark.spark_api.messages, 'create', mock_sparkapi):
+            r = self.client.post(url_for('api_v1.alert'),
+                                 headers=[self.sb_api_token],
+                                 data=json.dumps(input_),
+                                 content_type='application/json')
+            self.assert_200(r)
+
     ### /ping endpoint
     def test_ping_get_wo_token(self):
         r = self.client.get(url_for('api_v1.ping'))
