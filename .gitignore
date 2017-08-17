@@ -1,4 +1,5 @@
 app.cfg
+gunicorn.conf.py
 *.pyc
 *.swo
 *.swn
