@@ -18,14 +18,15 @@ def ping(api_version):
 def spark_send_alert_message(sendto, subject, message):
     # crude but good enough to tell the difference between roomId and
     # toPersonEmail inputs.
-    if '@' not in sendto:
-        abort(400, message="\"to\" must be an email address that represents "
-                       "a Spark user.")
+    if '@' in sendto:
+        msg_args = dict(toPersonEmail=sendto)
+    else:
+        msg_args = dict(roomId=sendto)
+
+    msg_args.update(text='\n\n'.join([subject, message]))
 
     try:
-        msg = spark_api.messages.create(
-                toPersonEmail=sendto,
-                text='\n\n'.join([subject, message]))
+        msg = spark_api.messages.create(**msg_args)
     except SparkApiError as e:
         # XXX log the error
         abort(e.response_code,
@@ -33,6 +34,7 @@ def spark_send_alert_message(sendto, subject, message):
 
     return {
         'toPersonEmail': msg.toPersonEmail,
+        'toRoomId': msg.roomId,
         'message': msg.text,
         'messageId': msg.id,
         'created': msg.created

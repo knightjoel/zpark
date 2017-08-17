@@ -44,17 +44,19 @@ class ApiV1TestCase(ApiTestCase):
         self.assert_405(r)
 
     ### POST /alert endpoint
-    def test_alert_post_valid_alert(self):
+    def test_alert_post_valid_alert_direct(self):
         to = u'joel@zpark.packetmischief'
         subject = u'This might ruin your day...'
         message = u'Your data center is on fire'
 
         mock_sparkapi = Mock(name='create')
         # simulate a ciscosparkapi.messages object
-        my_spark_msg_obj = namedtuple('sparkmsg', 'toPersonEmail text id created')
+        my_spark_msg_obj = namedtuple('sparkmsg',
+                                      'toPersonEmail roomId text id created')
         my_spark_msg = my_spark_msg_obj(
             created='2017-08-09T00:26:11.937Z',
             id='id123456',
+            roomId=None,
             toPersonEmail=to,
             text='\n\n'.join([subject, message])
         )
@@ -80,6 +82,47 @@ class ApiV1TestCase(ApiTestCase):
             self.assertEqual(rjson['messageId'], my_spark_msg.id)
             self.assertEqual(rjson['toPersonEmail'],
                              my_spark_msg.toPersonEmail)
+            self.assertIsNone(rjson['toRoomId'])
+
+    def test_alert_post_valid_alert_group(self):
+        to = u'roomid1234567'
+        subject = u'This might ruin your day...'
+        message = u'Your data center is on fire'
+
+        mock_sparkapi = Mock(name='create')
+        # simulate a ciscosparkapi.messages object
+        my_spark_msg_obj = namedtuple('sparkmsg',
+                                      'toPersonEmail roomId text id created')
+        my_spark_msg = my_spark_msg_obj(
+            created='2017-08-09T00:26:11.937Z',
+            id='id123456',
+            roomId=to,
+            toPersonEmail=None,
+            text='\n\n'.join([subject, message])
+        )
+        mock_sparkapi.return_value = my_spark_msg
+
+        with patch.object(zpark.spark_api.messages, 'create', mock_sparkapi):
+            r = self.client.post(url_for('api_v1.alert'),
+                                 headers=[self.sb_api_token],
+                                 data=json.dumps({
+                                    'to': to,
+                                    'subject': subject,
+                                    'message': message
+                                 }),
+                                 content_type='application/json')
+            self.assert_200(r)
+            mock_sparkapi.assert_called_once_with(
+                roomId=my_spark_msg.roomId,
+                text=my_spark_msg.text
+            )
+            rjson = json.loads(r.data)
+            self.assertEqual(rjson['created'], my_spark_msg.created)
+            self.assertEqual(rjson['message'], my_spark_msg.text)
+            self.assertEqual(rjson['messageId'], my_spark_msg.id)
+            self.assertEqual(rjson['toRoomId'],
+                             my_spark_msg.roomId)
+            self.assertIsNone(rjson['toPersonEmail'])
 
     def test_alert_post_valid_alert_wo_token(self):
         to = u'joel@zpark.packetmischief'
@@ -117,22 +160,6 @@ class ApiV1TestCase(ApiTestCase):
                 toPersonEmail=to,
                 text='\n\n'.join([subject, message])
             )
-
-    def test_alert_post_valid_alert_to_roomid(self):
-        to = 'Abc1234wxyz'
-        subject = u'This might ruin your day...'
-        message = u'Your data center is on fire'
-
-        r = self.client.post(url_for('api_v1.alert'),
-                             headers=[self.sb_api_token],
-                             data=json.dumps({
-                                'to': to,
-                                'subject': subject,
-                                'message': message
-                             }),
-                             content_type='application/json')
-        self.assert_400(r)
-        self.assertIn('must be an email address', r.data)
 
     ### /ping endpoint
     def test_ping_get_wo_token(self):
