@@ -1,0 +1,7 @@
+This directory will hold log files from the application. The application will
+auto rotate files in this directory. See config settings:
+
+APP_LOG_LOGLEVEL
+APP_LOG_MAXBYTES
+APP_LOG_ROTATECOUNT
+

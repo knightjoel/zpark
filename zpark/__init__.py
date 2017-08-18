@@ -1,4 +1,5 @@
 import os
+import sys
 
 from ciscosparkapi import CiscoSparkAPI
 from flask import Flask
@@ -10,6 +11,28 @@ basedir = os.path.abspath(basedir + '/../')
 app = Flask(__name__, instance_path=basedir, instance_relative_config=True)
 app.config.from_object('zpark.default_settings')
 app.config.from_pyfile('app.cfg', silent=True)
+
+if not app.debug and not sys.stdout.isatty():
+    import logging
+    from logging import Formatter
+    from logging.handlers import RotatingFileHandler
+    from zpark.log import ContextualLogFilter
+
+    app.logger.setLevel(logging.DEBUG)
+    app.logger.addFilter(ContextualLogFilter())
+
+    file_handler = RotatingFileHandler(
+            os.path.join(basedir, 'logs/app.log'),
+            maxBytes=app.config['APP_LOG_MAXBYTES'],
+            backupCount=app.config['APP_LOG_ROTATECOUNT'])
+    file_handler.setFormatter(Formatter(
+            '%(asctime)s %(levelname)s: %(message)s'
+            ' [in %(pathname)s:%(lineno)d]'
+            ' [client:%(client_ip)s method:"%(method)s" url:"%(url)s"'
+            ' ua:"%(user_agent)s"]'
+            ))
+    file_handler.setLevel(app.config['APP_LOG_LOGLEVEL'])
+    app.logger.addHandler(file_handler)
 
 spark_api = CiscoSparkAPI(access_token=app.config['SPARK_ACCESS_TOKEN'])
 
