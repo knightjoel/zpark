@@ -5,7 +5,7 @@ from ciscosparkapi import SparkApiError
 from flask import current_app, request
 from flask_restful import abort
 
-from zpark import spark_api
+from zpark import app, spark_api
 
 
 def ping(api_version):
@@ -31,9 +31,12 @@ def spark_send_alert_message(sendto, subject, message):
     try:
         msg = spark_api.messages.create(**msg_args)
     except SparkApiError as e:
-        # XXX log the error
-        abort(e.response_code,
-              message="The Spark API returned an error: {}".format(e))
+        msg = "The Spark API returned an error: {}".format(e)
+        app.logger.error(msg)
+        abort(e.response_code, message=msg)
+
+    app.logger.info("New message: toPersonEmail:{} toRoomId:{} messageId:{}"
+                        .format(msg.toPersonEmail, msg.roomId, msg.id))
 
     return {
         'toPersonEmail': msg.toPersonEmail,
@@ -49,11 +52,13 @@ def requires_token(func):
         token = request.headers.get('Token', None)
 
         if not token or not current_app.config['SB_API_TOKEN']:
+            current_app.logger.warning("Request was missing the SB_API_TOKEN")
             abort(401)
 
         if token == current_app.config['SB_API_TOKEN']:
             return func(*args, **kwargs)
         else:
+            current_app.logger.warning("Invalid SB_API_TOKEN")
             abort(401)
 
     return decorated
