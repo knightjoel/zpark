@@ -3,6 +3,7 @@ import sys
 
 from ciscosparkapi import CiscoSparkAPI
 from flask import Flask
+from werkzeug.contrib.fixers import ProxyFix
 
 
 basedir = os.path.dirname(os.path.abspath(__file__))
@@ -11,6 +12,8 @@ basedir = os.path.abspath(basedir + '/../')
 app = Flask(__name__, instance_path=basedir, instance_relative_config=True)
 app.config.from_object('zpark.default_settings')
 app.config.from_pyfile('app.cfg', silent=True)
+
+app.wsgi_app = ProxyFix(app.wsgi_app)
 
 if not app.debug and not sys.stdout.isatty():
     import logging
