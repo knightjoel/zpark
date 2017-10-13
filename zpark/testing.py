@@ -18,12 +18,12 @@ class ApiTestCase(TestCase):
         zpark.app.config.update(
             DEBUG = False,
             TESTING = True,
-            SB_API_TOKEN = 'token12345'
+            ZPARK_API_TOKEN = 'token12345'
         )
         return zpark.app
 
     def setUp(self):
-        self.sb_api_token = ('Token', zpark.app.config['SB_API_TOKEN'])
+        self.sb_api_token = ('Token', zpark.app.config['ZPARK_API_TOKEN'])
 
     def tearDown(self):
         pass

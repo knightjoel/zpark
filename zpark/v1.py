@@ -12,7 +12,7 @@ api_v1 = Api(api_v1_bp)
 
 class Alert(Resource):
 
-    @api_common.requires_token
+    @api_common.requires_api_token
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('to', type=unicode, required=True,
@@ -35,7 +35,7 @@ class Alert(Resource):
 
 class Ping(Resource):
 
-    @api_common.requires_token
+    @api_common.requires_api_token
     def get(self):
         return api_common.ping(api_version=API_VERSION)
 

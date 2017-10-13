@@ -46,19 +46,19 @@ def spark_send_alert_message(sendto, subject, message):
         'created': msg.created
     }
 
-def requires_token(func):
+def requires_api_token(func):
     @wraps(func)
     def decorated(*args, **kwargs):
         token = request.headers.get('Token', None)
 
-        if not token or not current_app.config['SB_API_TOKEN']:
-            current_app.logger.warning("Request was missing the SB_API_TOKEN")
+        if not token or not current_app.config['ZPARK_API_TOKEN']:
+            current_app.logger.warning("Request was missing ZPARK_API_TOKEN")
             abort(401)
 
-        if token == current_app.config['SB_API_TOKEN']:
+        if token == current_app.config['ZPARK_API_TOKEN']:
             return func(*args, **kwargs)
         else:
-            current_app.logger.warning("Invalid SB_API_TOKEN")
+            current_app.logger.warning("Invalid ZPARK_API_TOKEN")
             abort(401)
 
     return decorated
