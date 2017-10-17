@@ -24,6 +24,7 @@ class ApiTestCase(TestCase):
 
     def setUp(self):
         self.sb_api_token = ('Token', zpark.app.config['ZPARK_API_TOKEN'])
+        zpark.app.logger.setLevel(999)
 
     def tearDown(self):
         pass
