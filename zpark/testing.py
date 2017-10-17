@@ -1,10 +1,7 @@
 from collections import namedtuple
 import json
 
-try:    # python 2.x
-    from mock import Mock, patch
-except: # python 3.x
-    from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch
 from ciscosparkapi import SparkApiError
 from flask import url_for
 from flask_testing import TestCase
@@ -168,7 +165,7 @@ class ApiV1TestCase(ApiTestCase):
                              data=json.dumps(input_),
                              content_type='application/json')
         self.assert_status(r, 400)
-        self.assertIn('Required', r.data)
+        self.assertIn(b'Required', r.data)
 
     def test_alert_post_missing_to(self):
         input_ = {

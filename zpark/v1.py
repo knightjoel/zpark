@@ -15,15 +15,15 @@ class Alert(Resource):
     @api_common.requires_api_token
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument('to', type=unicode, required=True,
+        parser.add_argument('to', type=str, required=True,
                             location='json',
                             help='Identifier of person or Spark space to '
                                     'send the alert to. Required.')
-        parser.add_argument('subject', type=unicode, required=True,
+        parser.add_argument('subject', type=str, required=True,
                             location='json',
                             help='The subject (ie, first line) of text sent '
                                     'to the recipient. Required.')
-        parser.add_argument('message', type=unicode, required=False,
+        parser.add_argument('message', type=str, required=False,
                             location='json',
                             help='The contents of the alert message. Optional.')
         args = parser.parse_args()
