@@ -15,7 +15,7 @@ def ping(api_version):
         'utctime': str(dt.utcnow())
     }
 
-def spark_send_alert_message(sendto, subject, message):
+def send_spark_alert_message(sendto, subject, message):
     # crude but good enough to tell the difference between roomId and
     # toPersonEmail inputs.
     if '@' in sendto:
