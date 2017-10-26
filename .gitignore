@@ -1,6 +1,7 @@
 app.cfg
 gunicorn.conf.py
 logs/app.log*
+logs/task.log*
 *.pyc
 *.swo
 *.swn
