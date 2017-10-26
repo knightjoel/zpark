@@ -2,6 +2,7 @@ from collections import namedtuple
 import json
 
 from unittest.mock import Mock, patch
+from celery.exceptions import Retry
 from ciscosparkapi import SparkApiError
 from flask import url_for
 from flask_testing import TestCase
@@ -9,7 +10,7 @@ from flask_testing import TestCase
 import zpark
 
 
-class ApiTestCase(TestCase):
+class BaseTestCase(TestCase):
 
     def create_app(self):
         zpark.app.config.update(
@@ -27,7 +28,7 @@ class ApiTestCase(TestCase):
         pass
 
 
-class ApiV1TestCase(ApiTestCase):
+class ApiV1TestCase(BaseTestCase):
 
     ### GET /alert endpoint
     def test_alert_get_w_token(self):
@@ -232,4 +233,66 @@ class ApiV1TestCase(ApiTestCase):
         r = self.client.post(url_for('api_v1.ping'))
 
         self.assert_405(r)
+
+
+class TaskTestCase(BaseTestCase):
+
+    def test_task_send_spark_message(self):
+        to = u'joel@zpark.packetmischief'
+        subject = u'This might ruin your day...'
+        message = u'Your data center is on fire'
+
+        my_spark_output_obj = namedtuple('sparkmsg',
+                                      'toPersonEmail roomId text id created')
+        # this is only a subset of the data returned by the API
+        my_spark_output = my_spark_output_obj(
+            created='2017-08-09T00:26:11.937Z',
+            id='id123456',
+            roomId=None,
+            toPersonEmail=to,
+            text='\n\n'.join([subject, message])
+        )
+
+        mock_sparkapi = patch('zpark.spark_api.messages.create',
+                              autospec=True)
+        mock_sparkapi_patcher = mock_sparkapi.start()
+        mock_sparkapi_patcher.return_value = my_spark_output
+
+        my_spark_msg = dict(
+            toPersonEmail=to,
+            text='\n\n'.join([subject, message])
+        )
+
+        self.assertEqual(my_spark_output.id,
+                         zpark.tasks.task_send_spark_message(my_spark_msg))
+        mock_sparkapi.stop()
+
+    def test_task_send_spark_message_retry(self):
+        to = u'joel@zpark.packetmischief'
+        subject = u'This might ruin your day...'
+        message = u'Your data center is on fire'
+
+        e = SparkApiError(429)
+
+        mock_sparkapi = patch('zpark.spark_api.messages.create',
+                              autospec=True)
+        mock_sparkapi_patcher = mock_sparkapi.start()
+        mock_sparkapi_patcher.side_effect = [e, None]
+        mock_retry = patch('zpark.tasks.task_send_spark_message.retry',
+                           autospec=True)
+        mock_retry_patcher = mock_retry.start()
+        mock_retry_patcher.side_effect = Retry
+
+        my_spark_msg = dict(
+            toPersonEmail=to,
+            text='\n\n'.join([subject, message])
+        )
+
+        with self.assertRaises(Retry):
+            zpark.tasks.task_send_spark_message(my_spark_msg).apply()
+
+        mock_retry_patcher.assert_called_with(exc=e)
+
+        mock_retry.stop()
+        mock_sparkapi.stop()
 
