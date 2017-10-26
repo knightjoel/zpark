@@ -12,8 +12,7 @@ from zpark import celery as celery_app
 logger = get_task_logger(__name__)
 
 
-@celery_app.task(bind=True, retry_backoff=5, retry_jitter=False,
-                 retry_backoff_max=60)
+@celery_app.task(bind=True, default_retry_delay=20, max_retries=3)
 def task_send_spark_message(self, msg):
     try:
         msg = spark_api.messages.create(**msg)
