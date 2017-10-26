@@ -1,6 +1,7 @@
 import os
 import sys
 
+from celery import Celery
 from ciscosparkapi import CiscoSparkAPI
 from flask import Flask
 from werkzeug.contrib.fixers import ProxyFix
@@ -14,6 +15,10 @@ app.config.from_object('zpark.default_settings')
 app.config.from_pyfile('app.cfg', silent=True)
 
 app.wsgi_app = ProxyFix(app.wsgi_app)
+
+celery = Celery(broker=app.config['CELERY_BROKER_URL'])
+celery.config_from_object(app.config)
+celery.conf.worker_hijack_root_logger = False
 
 if not app.debug and not sys.stdout.isatty():
     import logging

@@ -28,7 +28,7 @@ class Alert(Resource):
                             help='The contents of the alert message. Optional.')
         args = parser.parse_args()
 
-        return api_common.spark_send_alert_message(args['to'],
+        return api_common.send_spark_alert_message(args['to'],
                                                    args['subject'],
                                                    args['message'])
 

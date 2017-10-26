@@ -1,11 +1,11 @@
 from functools import wraps
 from datetime import datetime as dt
 
-from ciscosparkapi import SparkApiError
 from flask import current_app, request
 from flask_restful import abort
 
-from zpark import app, spark_api
+from zpark import app
+from zpark.tasks import task_send_spark_message
 
 
 def ping(api_version):
@@ -28,22 +28,21 @@ def send_spark_alert_message(sendto, subject, message):
     else:
         msg_args.update(text=subject)
 
-    try:
-        msg = spark_api.messages.create(**msg_args)
-    except SparkApiError as e:
-        msg = "The Spark API returned an error: {}".format(e)
-        app.logger.error(msg)
-        abort(e.response_code, message=msg)
+    # XXX error checking?
+    task = task_send_spark_message.apply_async((msg_args,))
 
-    app.logger.info("New message: toPersonEmail:{} toRoomId:{} messageId:{}"
-                        .format(msg.toPersonEmail, msg.roomId, msg.id))
+    app.logger.info("New Spark alert message (task {}): toPersonEmail:{} "
+                    "toRoomId:{}"
+                        .format(task.id,
+                                msg_args.get('toPersonEmail', 'None'),
+                                msg_args.get('roomId', 'None')))
+
 
     return {
-        'toPersonEmail': msg.toPersonEmail,
-        'toRoomId': msg.roomId,
-        'message': msg.text,
-        'messageId': msg.id,
-        'created': msg.created
+        'toPersonEmail': msg_args.get('toPersonEmail', None),
+        'toRoomId': msg_args.get('roomId', None),
+        'message': msg_args.get('text'),
+        'taskid': task.id
     }
 
 def requires_api_token(func):
