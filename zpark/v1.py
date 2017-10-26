@@ -1,7 +1,7 @@
 from flask import Blueprint
 from flask_restful import Api, Resource, reqparse
 
-from zpark import api_common
+from zpark import app, api_common
 
 
 API_VERSION_V1=1
@@ -28,6 +28,10 @@ class Alert(Resource):
                             help='The contents of the alert message. Optional.')
         args = parser.parse_args()
 
+        app.logger.info("API: create alert: to:{} subject:<hidden>"
+                " message:<hidden>"
+                .format(args['to']))
+
         return api_common.spark_send_alert_message(args['to'],
                                                    args['subject'],
                                                    args['message'])
@@ -37,6 +41,7 @@ class Ping(Resource):
 
     @api_common.requires_api_token
     def get(self):
+        app.logger.info("API: ping")
         return api_common.ping(api_version=API_VERSION)
 
 api_v1.add_resource(Ping, '/ping')
