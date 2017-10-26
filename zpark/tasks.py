@@ -12,8 +12,9 @@ from zpark import celery as celery_app
 logger = get_task_logger(__name__)
 
 
-@celery_app.task()
-def task_send_spark_message(msg):
+@celery_app.task(bind=True, retry_backoff=5, retry_jitter=False,
+                 retry_backoff_max=60)
+def task_send_spark_message(self, msg):
     try:
         msg = spark_api.messages.create(**msg)
 
@@ -23,8 +24,7 @@ def task_send_spark_message(msg):
     except SparkApiError as e:
         msg = "The Spark API returned an error: {}".format(e)
         logger.error(msg)
-
-    # XXX return value? (i think it would be captured by celery)
+        raise self.retry(exc=e)
 
 
 @celery.signals.setup_logging.connect
