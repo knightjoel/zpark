@@ -1,5 +1,6 @@
 from functools import wraps
 from datetime import datetime as dt
+import traceback
 
 from flask import current_app, request
 from flask_restful import abort
@@ -28,8 +29,12 @@ def send_spark_alert_message(sendto, subject, message):
     else:
         msg_args.update(text=subject)
 
-    # XXX error checking?
-    task = task_send_spark_message.apply_async((msg_args,))
+    try:
+        task = task_send_spark_message.apply_async((msg_args,))
+    except (TypeError, task_send_spark_message.OperationalError) as e:
+        app.logger.error("Unable to create task 'task_send_spark_message'."
+                " Spark alert dropped! {}: {}\n{}"
+                .format(type(e).__name__, e, traceback.format_exc()))
 
     app.logger.info("New Spark alert message (task {}): toPersonEmail:{} "
                     "toRoomId:{}"
