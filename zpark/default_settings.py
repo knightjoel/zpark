@@ -1,7 +1,7 @@
 import logging
 
 DEBUG = False
-SB_API_TOKEN = None
+ZPARK_API_TOKEN = None
 SPARK_ACCESS_TOKEN = None
 
 APP_LOG_MAXBYTES = 1024 * 1024 * 10

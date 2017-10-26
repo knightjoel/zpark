@@ -17,7 +17,7 @@ if [ -z "$ZPARK_URL" ]; then
 	exit 1
 fi
 if [ -z "$ZPARK_API_TOKEN" ]; then
-	echo "You must set the ZPARK_API_TOKEN environment variable or the zpark_api_token variable inside this script to match the SB_API_TOKEN value configured in the Zpark app.cfg file."
+	echo "You must set the ZPARK_API_TOKEN environment variable or the zpark_api_token variable inside this script to match the ZPARK_API_TOKEN value configured in the Zpark app.cfg file."
 	exit 1
 fi
 
