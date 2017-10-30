@@ -1,7 +1,7 @@
 from collections import namedtuple
 import json
-
 from unittest.mock import PropertyMock, patch
+
 from celery.exceptions import Retry
 from ciscosparkapi import SparkApiError
 from flask import url_for
