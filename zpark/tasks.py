@@ -13,12 +13,24 @@ logger = get_task_logger(__name__)
 
 
 @celery_app.task(bind=True, default_retry_delay=20, max_retries=3)
-def task_send_spark_message(self, msg):
+def task_send_spark_message(self, to, text, md=None):
+    # crude but good enough to tell the difference between roomId and
+    # toPersonEmail inputs. this logic fails if we're passed a personId.
+    if '@' in to:
+        msg = dict(toPersonEmail=to)
+    else:
+        msg = dict(roomId=to)
+
+    msg.update(text=text)
+
+    if md is not None:
+        msg.update(markdown=md)
+
     try:
         msg = spark_api.messages.create(**msg)
 
         logger.info("New Spark message created: toPersonEmail:{} "
-                    "toRoomId:{} messageId:{}"
+                    "roomId:{} messageId:{}"
                         .format(msg.toPersonEmail, msg.roomId, msg.id))
         return msg.id
     except SparkApiError as e:

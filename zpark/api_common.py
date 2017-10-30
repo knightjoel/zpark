@@ -17,36 +17,24 @@ def ping(api_version):
     }
 
 def send_spark_alert_message(sendto, subject, message):
-    # crude but good enough to tell the difference between roomId and
-    # toPersonEmail inputs.
-    if '@' in sendto:
-        msg_args = dict(toPersonEmail=sendto)
-    else:
-        msg_args = dict(roomId=sendto)
-
     if message is not None:
-        msg_args.update(text='\n\n'.join([subject, message]))
+        text = '\n\n'.join([subject, message])
     else:
-        msg_args.update(text=subject)
+        text = subject
 
     try:
-        task = task_send_spark_message.apply_async((msg_args,))
+        task = task_send_spark_message.apply_async((sendto, text))
     except (TypeError, task_send_spark_message.OperationalError) as e:
         app.logger.error("Unable to create task 'task_send_spark_message'."
                 " Spark alert dropped! {}: {}\n{}"
                 .format(type(e).__name__, e, traceback.format_exc()))
 
-    app.logger.info("New Spark alert message (task {}): toPersonEmail:{} "
-                    "toRoomId:{}"
-                        .format(task.id,
-                                msg_args.get('toPersonEmail', 'None'),
-                                msg_args.get('roomId', 'None')))
-
+    app.logger.info("New Spark alert message (task {}): to:{} subject:\"{}\""
+                        .format(task.id, sendto, subject))
 
     return {
-        'toPersonEmail': msg_args.get('toPersonEmail', None),
-        'toRoomId': msg_args.get('roomId', None),
-        'message': msg_args.get('text'),
+        'to': sendto,
+        'message': text,
         'taskid': task.id
     }
 

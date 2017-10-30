@@ -64,8 +64,7 @@ class ApiV1TestCase(BaseTestCase):
         mock_task.assert_called_once()
         rjson = json.loads(r.data)
         self.assertEqual(rjson['message'], '{}\n\n{}'.format(subject, message))
-        self.assertEqual(rjson['toPersonEmail'], to)
-        self.assertIsNone(rjson['toRoomId'])
+        self.assertEqual(rjson['to'], to)
         self.assertEqual(rjson['taskid'], 'id123abc')
 
     def test_alert_post_valid_alert_group(self, mock_task):
@@ -88,8 +87,7 @@ class ApiV1TestCase(BaseTestCase):
         mock_task.assert_called_once()
         rjson = json.loads(r.data)
         self.assertEqual(rjson['message'], '{}\n\n{}'.format(subject, message))
-        self.assertEqual(rjson['toRoomId'], to)
-        self.assertIsNone(rjson['toPersonEmail'])
+        self.assertEqual(rjson['to'], to)
         self.assertEqual(rjson['taskid'], 'id123abc')
 
     def test_alert_post_valid_alert_wo_token(self, *args):
@@ -178,7 +176,6 @@ class TaskTestCase(BaseTestCase):
 
     def test_task_send_spark_message(self, mock_sparkapi):
         to = u'joel@zpark.packetmischief'
-        subject = u'This might ruin your day...'
         message = u'Your data center is on fire'
 
         my_spark_output_obj = namedtuple('sparkmsg',
@@ -189,22 +186,16 @@ class TaskTestCase(BaseTestCase):
             id='id123456',
             roomId=None,
             toPersonEmail=to,
-            text='\n\n'.join([subject, message])
+            text=message
         )
 
         mock_sparkapi.return_value = my_spark_output
 
-        my_spark_msg = dict(
-            toPersonEmail=to,
-            text='\n\n'.join([subject, message])
-        )
-
         self.assertEqual(my_spark_output.id,
-                         zpark.tasks.task_send_spark_message(my_spark_msg))
+                         zpark.tasks.task_send_spark_message(to, message))
 
     def test_task_send_spark_message_retry(self, mock_sparkapi):
         to = u'joel@zpark.packetmischief'
-        subject = u'This might ruin your day...'
         message = u'Your data center is on fire'
 
         e = SparkApiError(429)
@@ -215,13 +206,8 @@ class TaskTestCase(BaseTestCase):
         mock_retry_patcher = mock_retry.start()
         mock_retry_patcher.side_effect = Retry
 
-        my_spark_msg = dict(
-            toPersonEmail=to,
-            text='\n\n'.join([subject, message])
-        )
-
         with self.assertRaises(Retry):
-            zpark.tasks.task_send_spark_message(my_spark_msg).apply()
+            zpark.tasks.task_send_spark_message(to, message).apply()
 
         mock_retry_patcher.assert_called_with(exc=e)
 
