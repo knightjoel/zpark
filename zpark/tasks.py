@@ -1,9 +1,10 @@
+import logging
+import os
+
 from celery import Celery
 import celery.signals
 from celery.utils.log import get_task_logger
 from ciscosparkapi import SparkApiError
-import logging
-import os
 
 from zpark import app, basedir, spark_api
 from zpark import celery as celery_app
