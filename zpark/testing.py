@@ -28,29 +28,39 @@ class BaseTestCase(TestCase):
         pass
 
 
-@patch('zpark.tasks.task_send_spark_message.apply_async', autospec=True)
 class ApiV1TestCase(BaseTestCase):
 
+    def setUp(self):
+        self.mock_sendmsg_patcher = \
+                patch('zpark.tasks.task_send_spark_message.apply_async',
+                      autospec=True)
+        self.mock_sendmsg = self.mock_sendmsg_patcher.start()
+        super(ApiV1TestCase, self).setUp()
+
+    def tearDown(self):
+        self.mock_sendmsg_patcher.stop()
+        super(ApiV1TestCase, self).tearDown()
+
     ### GET /alert endpoint
-    def test_alert_get_w_token(self, *args):
+    def test_alert_get_w_token(self):
         r = self.client.get(url_for('api_v1.alert'),
                             headers=[self.sb_api_token])
 
         self.assert_405(r)
 
-    def test_alert_get_wo_token(self, *args):
+    def test_alert_get_wo_token(self):
         r = self.client.get(url_for('api_v1.alert'))
 
         self.assert_405(r)
 
     ### POST /alert endpoint
-    def test_alert_post_valid_alert_direct(self, mock_task):
+    def test_alert_post_valid_alert_direct(self):
         to = u'joel@zpark.packetmischief'
         subject = u'This might ruin your day...'
         message = u'Your data center is on fire'
 
-        type(mock_task.return_value).id = PropertyMock(
-                                            return_value='id123abc')
+        type(self.mock_sendmsg.return_value).id = PropertyMock(
+                                               return_value='id123abc')
 
         r = self.client.post(url_for('api_v1.alert'),
                              headers=[self.sb_api_token],
@@ -61,18 +71,18 @@ class ApiV1TestCase(BaseTestCase):
                              }),
                              content_type='application/json')
         self.assert_200(r)
-        mock_task.assert_called_once()
+        self.mock_sendmsg.assert_called_once()
         rjson = json.loads(r.data)
         self.assertEqual(rjson['message'], '{}\n\n{}'.format(subject, message))
         self.assertEqual(rjson['to'], to)
         self.assertEqual(rjson['taskid'], 'id123abc')
 
-    def test_alert_post_valid_alert_group(self, mock_task):
+    def test_alert_post_valid_alert_group(self):
         to = u'roomid1234567'
         subject = u'This might ruin your day...'
         message = u'Your data center is on fire'
 
-        type(mock_task.return_value).id = PropertyMock(
+        type(self.mock_sendmsg.return_value).id = PropertyMock(
                                             return_value='id123abc')
 
         r = self.client.post(url_for('api_v1.alert'),
@@ -84,13 +94,13 @@ class ApiV1TestCase(BaseTestCase):
                              }),
                              content_type='application/json')
         self.assert_200(r)
-        mock_task.assert_called_once()
+        self.mock_sendmsg.assert_called_once()
         rjson = json.loads(r.data)
         self.assertEqual(rjson['message'], '{}\n\n{}'.format(subject, message))
         self.assertEqual(rjson['to'], to)
         self.assertEqual(rjson['taskid'], 'id123abc')
 
-    def test_alert_post_valid_alert_wo_token(self, *args):
+    def test_alert_post_valid_alert_wo_token(self):
         to = u'joel@zpark.packetmischief'
         subject = u'This might ruin your day...'
         message = u'Your data center is on fire'
@@ -113,7 +123,7 @@ class ApiV1TestCase(BaseTestCase):
         self.assert_status(r, 400)
         self.assertIn(b'Required', r.data)
 
-    def test_alert_post_missing_to(self, *args):
+    def test_alert_post_missing_to(self):
         input_ = {
             # missing 'to'
             'subject': 'subj',
@@ -122,7 +132,7 @@ class ApiV1TestCase(BaseTestCase):
 
         self._alert_post_missing_input(input_)
 
-    def test_alert_post_missing_subject(self, *args):
+    def test_alert_post_missing_subject(self):
         input_ = {
             # missing 'subject'
             'to': 'joel',
@@ -131,7 +141,7 @@ class ApiV1TestCase(BaseTestCase):
 
         self._alert_post_missing_input(input_)
 
-    def test_alert_post_missing_message(self, mock_task):
+    def test_alert_post_missing_message(self):
         """
         'message' is allowed to be absent so the result of this test should be
         an HTTP 200 and a good status message returned from the API.
@@ -142,7 +152,7 @@ class ApiV1TestCase(BaseTestCase):
             'subject': 'subj',
         }
 
-        type(mock_task.return_value).id = PropertyMock(
+        type(self.mock_sendmsg.return_value).id = PropertyMock(
                                             return_value='id123abc')
         r = self.client.post(url_for('api_v1.alert'),
                              headers=[self.sb_api_token],
@@ -153,19 +163,19 @@ class ApiV1TestCase(BaseTestCase):
         self.assertEqual(rjson['message'], input_['subject'])
 
     ### /ping endpoint
-    def test_ping_get_wo_token(self, *args):
+    def test_ping_get_wo_token(self):
         r = self.client.get(url_for('api_v1.ping'))
 
         self.assert_401(r)
 
-    def test_ping_get_w_token(self, *args):
+    def test_ping_get_w_token(self):
         r = self.client.get(url_for('api_v1.ping'),
                             headers=[self.sb_api_token])
 
         self.assert_200(r)
         self.assertEqual(json.loads(r.data)['apiversion'], zpark.v1.API_VERSION)
 
-    def test_ping_post_verb(self, *args):
+    def test_ping_post_verb(self):
         r = self.client.post(url_for('api_v1.ping'))
 
         self.assert_405(r)
