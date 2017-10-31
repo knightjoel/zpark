@@ -24,7 +24,7 @@ def task_send_spark_message(self, msg):
     except SparkApiError as e:
         msg = "The Spark API returned an error: {}".format(e)
         logger.error(msg)
-        raise self.retry(exc=e)
+        self.retry(exc=e)
 
 
 @celery.signals.setup_logging.connect
