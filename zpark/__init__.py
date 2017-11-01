@@ -4,6 +4,7 @@ import sys
 from celery import Celery
 from ciscosparkapi import CiscoSparkAPI
 from flask import Flask
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 import pyzabbix
 from werkzeug.contrib.fixers import ProxyFix
 
@@ -43,6 +44,13 @@ if not app.debug and not sys.stdout.isatty():
             ))
     file_handler.setLevel(app.config['APP_LOG_LOGLEVEL'])
     app.logger.addHandler(file_handler)
+
+jinja2 = Environment(
+    loader=FileSystemLoader(basedir + '/zpark/templates'),
+    autoescape=select_autoescape(['html', 'xml']),
+    trim_blocks=True,
+    lstrip_blocks=True
+)
 
 spark_api = CiscoSparkAPI(access_token=app.config['SPARK_ACCESS_TOKEN'])
 
