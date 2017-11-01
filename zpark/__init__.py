@@ -19,6 +19,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 celery = Celery(broker=app.config['CELERY_BROKER_URL'])
 celery.config_from_object(app.config)
 celery.conf.worker_hijack_root_logger = False
+celery.conf.task_eager_propagates = True
 
 if not app.debug and not sys.stdout.isatty():
     import logging
