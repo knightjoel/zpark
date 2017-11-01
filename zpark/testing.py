@@ -188,6 +188,13 @@ class TaskTestCase(BaseTestCase):
                 patch('zpark.spark_api.messages.create', autospec=True)
         self.mock_spark_msg_create = self.mock_spark_msg_create_patcher.start()
 
+        if False:
+            import logging
+            import sys
+            fmt = '%(levelname)s [%(pathname)s:%(lineno)d] %(message)s'
+            logging.basicConfig(level=logging.DEBUG, stream=sys.stderr,
+                                format=fmt)
+
     def tearDown(self):
         self.mock_spark_msg_create_patcher.stop()
 
