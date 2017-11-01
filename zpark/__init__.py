@@ -4,6 +4,7 @@ import sys
 from celery import Celery
 from ciscosparkapi import CiscoSparkAPI
 from flask import Flask
+import pyzabbix
 from werkzeug.contrib.fixers import ProxyFix
 
 
@@ -44,6 +45,14 @@ if not app.debug and not sys.stdout.isatty():
     app.logger.addHandler(file_handler)
 
 spark_api = CiscoSparkAPI(access_token=app.config['SPARK_ACCESS_TOKEN'])
+
+zabbix_api = pyzabbix.ZabbixAPI(app.config['ZABBIX_SERVER_URL'])
+try:
+    zabbix_api.login(app.config['ZABBIX_USERNAME'],
+                     app.config['ZABBIX_PASSWORD'])
+except pyzabbix.ZabbixAPIException as e:
+    app.logger.critical('Unable to authenticate to the Zabbix API at {}: {}'
+            .format(app.config['ZABBIX_SERVER_URL'], e))
 
 # API v1
 from zpark.v1 import api_v1, api_v1_bp, API_VERSION_V1
