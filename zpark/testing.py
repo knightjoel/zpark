@@ -229,16 +229,16 @@ class TaskTestCase(BaseTestCase):
         to = u'joel@zpark.packetmischief'
         message = u'Your data center is on fire'
 
-        e = SparkApiError(429)
+        e = SparkApiError(409)
 
-        self.mock_spark_msg_create.side_effect = [e, None]
+        self.mock_spark_msg_create.side_effect = [e, self.build_spark_api_reply()]
         mock_retry = patch('zpark.tasks.task_send_spark_message.retry',
                            autospec=True)
         mock_retry_patcher = mock_retry.start()
         mock_retry_patcher.side_effect = Retry
 
         with self.assertRaises(Retry):
-            zpark.tasks.task_send_spark_message(to, message).apply()
+            zpark.tasks.task_send_spark_message(to, message)
 
         mock_retry_patcher.assert_called_with(exc=e)
 
