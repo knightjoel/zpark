@@ -6,6 +6,7 @@ from celery.exceptions import Retry
 from ciscosparkapi import SparkApiError
 from flask import url_for
 from flask_testing import TestCase
+from pyzabbix import ZabbixAPIException
 
 import zpark
 
@@ -188,6 +189,11 @@ class TaskTestCase(BaseTestCase):
                 patch('zpark.spark_api.messages.create', autospec=True)
         self.mock_spark_msg_create = self.mock_spark_msg_create_patcher.start()
 
+        self.mock_zabbixapi_patcher = \
+            patch('zpark.pyzabbix.ZabbixAPIObjectClass.__getattr__',
+                  autospec=True)
+        self.mock_zabbixapi = self.mock_zabbixapi_patcher.start()
+
         if False:
             import logging
             import sys
@@ -197,6 +203,7 @@ class TaskTestCase(BaseTestCase):
 
     def tearDown(self):
         self.mock_spark_msg_create_patcher.stop()
+        self.mock_zabbixapi_patcher.stop()
 
     def build_spark_api_reply(self, toPersonEmail=None, text=None,
                               roomId=None):
@@ -243,4 +250,284 @@ class TaskTestCase(BaseTestCase):
         mock_retry_patcher.assert_called_with(exc=e)
 
         mock_retry.stop()
+
+    @patch('zpark.tasks.task_send_spark_message')
+    def test_task_report_zabbix_active_issues_good(self, mock_sendmsg):
+        """
+        Report the active Zabbix issues to Spark in response to an assumed
+        "show me the issues" command. This test should be successful and has
+        no contrived conditions to cause a failure.
+        Expected behavior:
+
+        - Zabbix API (mock) is called once to get the list of issues
+        - Spark API (mock) is called once to output the list of issues
+        - Spark API (mock) was called with certain inputs that match the
+        (mocked) Zabbix API output
+        - task_report_zabbix_active_issues() returns None
+        """
+        def zabbix_api_reply(*args, **kwargs):
+            return [{
+                'hosts': [
+                    {'host': 'host.packetmischief', 'hostid': 'host12345'}
+                ],
+                'description': 'This is the trigger\'s description',
+                'lastchange': 1509402980
+            }]
+
+        self.mock_zabbixapi.return_value = zabbix_api_reply
+
+        rv = zpark.tasks.task_report_zabbix_active_issues(
+                'roomid123abc',
+                'direct',
+                'joel@zpark.packetmischief')
+
+        self.mock_zabbixapi.assert_called_once()
+        mock_sendmsg.assert_called_once()
+        for call in mock_sendmsg.call_args_list:
+            args, kwargs = call
+            # arg0 is roomId
+            self.assertEqual('roomid123abc', args[0])
+            # arg1 is the text
+            self.assertIn('host.packetmischief', args[1])
+            # arg2 is the markdown
+            self.assertIn('host.packetmischief', args[2])
+        self.assertIsNone(rv)
+
+    @patch('zpark.tasks.task_send_spark_message')
+    def test_task_report_zabbix_active_issues_zero_issues(self, mock_sendmsg):
+        """
+        Report the active Zabbix issues to Spark in response to an assumed
+        "show me the issues" command. This test gets zero issues from the
+        Zabbix API (mock) but should be successful otherwise.
+        Expected behavior:
+
+        - Zabbix API (mock) is called once to get the list of issues
+        - Spark API (mock) is called once to output the list of issues
+        - Spark API (mock) was called with certain inputs that match the
+        (mocked) Zabbix API output
+        """
+        def zabbix_api_reply(*args, **kwargs):
+            return []
+
+        self.mock_zabbixapi.return_value = zabbix_api_reply
+
+        zpark.tasks.task_report_zabbix_active_issues(
+                'roomid123abc',
+                'direct',
+                'joel@zpark.packetmischief')
+
+        self.mock_zabbixapi.assert_called_once()
+        mock_sendmsg.assert_called_once()
+        for call in mock_sendmsg.call_args_list:
+            args, kwargs = call
+            # arg0 is roomId
+            self.assertEqual('roomid123abc', args[0])
+            # arg1 is the text
+            self.assertIn('no active issues', args[1])
+            # arg2 is the markdown
+            self.assertIn('no active issues', args[2])
+
+    @patch('zpark.tasks.notify_of_failed_command')
+    @patch('zpark.tasks.task_send_spark_message')
+    def test_task_report_zabbix_active_issues_zbx_error(self, mock_sendmsg,
+                                                        mock_notify):
+        """
+        Report the active Zabbix issues to Spark in response to an assumed
+        "show me the issues" command. This test mocks the Zabbix API to
+        throw an exception when the test attempts to get the list of active
+        issues.
+        Expected behavior:
+
+        - task_report_zabbix_active_issues() reraises the Zabbix API
+        exception
+        - Zabbix API (mock) is called once to get the list of issues
+        - notify_of_failed_command() (mock) should be called once
+        """
+        self.mock_zabbixapi.side_effect = ZabbixAPIException('error')
+
+        with self.assertRaises(ZabbixAPIException):
+            zpark.tasks.task_report_zabbix_active_issues(
+                    'roomid123abc',
+                    'direct',
+                    'joel@zpark.packetmischief')
+
+        self.mock_zabbixapi.assert_called_once()
+        mock_notify.assert_called_once()
+
+    @patch('zpark.tasks.notify_of_failed_command')
+    @patch('zpark.tasks.task_send_spark_message')
+    def test_task_report_zabbix_active_issues_retry_zbx_err(self, mock_sendmsg,
+                                                            mock_notify):
+        """
+        Report the active Zabbix issues to Spark in response to an assumed
+        "show me the issues" command. This test mocks the Zabbix API to
+        throw an exception on the first query and 'success' on the second.
+        Expected behavior:
+
+        - task_report_zabbix_active_issues() should retry after getting the
+        exception from Zabbix
+        - The retry mock should be called with the Zabbix exception as an
+        argument
+        - Zabbix API (mock) is called twice
+        - notify_of_failed_command() (mock) should be called once
+        """
+        report_args = ('roomid123abc',
+                       'direct',
+                       'joel@zpark.packetmischief')
+
+        e = ZabbixAPIException('error')
+        self.mock_zabbixapi.side_effect = [e, None]
+
+        mock_retry = patch('zpark.tasks.task_report_zabbix_active_issues.retry',
+                           autospec=True)
+        mock_retry_patcher = mock_retry.start()
+        mock_retry_patcher.side_effect = Retry
+
+        with self.assertRaises(Retry):
+            zpark.tasks.task_report_zabbix_active_issues(*report_args)
+
+        mock_retry_patcher.assert_called_with(exc=e)
+        self.mock_zabbixapi.assert_called_once()
+        mock_notify.assert_called_once()
+
+        mock_retry.stop()
+
+    @patch('zpark.tasks.task_send_spark_message')
+    def test_task_report_zabbix_active_issues_retry_spark_err(self,
+                                                              mock_sendmsg):
+        """
+        Report the active Zabbix issues to Spark in response to an assumed
+        "show me the issues" command. This test mocks the Spark API to
+        throw an exception on the first query and 'success' on the second.
+        Expected behavior:
+
+        - task_report_zabbix_active_issues() should retry after getting the
+        exception from Zabbix
+        - The retry mock should be called with the Spark exception as an
+        argument
+        - Zabbix API (mock) is called twice
+        - Spark API (mock) is called twice
+        """
+        report_args = ('roomid123abc',
+                       'direct',
+                       'joel@zpark.packetmischief')
+
+        e = SparkApiError(409)
+        mock_sendmsg.side_effect = [e, None]
+
+        mock_retry = patch('zpark.tasks.task_report_zabbix_active_issues.retry',
+                           autospec=True)
+        mock_retry_patcher = mock_retry.start()
+        mock_retry_patcher.side_effect = Retry
+
+        with self.assertRaises(Retry):
+            zpark.tasks.task_report_zabbix_active_issues(*report_args)
+
+        mock_retry_patcher.assert_called_with(exc=e)
+        self.mock_zabbixapi.assert_called_once()
+        mock_sendmsg.assert_called_once()
+
+        mock_retry.stop()
+
+    def test_task_report_zabbix_active_issues_bad_roomtype(self):
+        # 2nd argument is the roomtype. valid values are 'direct' and 'group'.
+        # anything else throws ValueError.
+        with self.assertRaises(ValueError):
+            zpark.tasks.task_report_zabbix_active_issues(
+                    'id123abc',
+                    'party',
+                    'joel@zpark.packetmischief')
+
+    def test_notify_of_failed_command_first_try(self):
+        """
+        Attempt notification that a bot command could not be answered right
+        away but a retry is underway.
+        Expected behavior:
+
+        - notify_of_failed_command() should attempt to notify the caller
+        via Spark message that it's retrying
+        - notify_of_failed_command() returns None
+        """
+        self.mock_spark_msg_create.return_value = self.build_spark_api_reply()
+
+        rv = zpark.tasks.notify_of_failed_command('roomId1234',
+                                                  'direct',
+                                                  'joel@zpark.packetmischief',
+                                                  0, # retries
+                                                  3, # max_retries
+                                                  'OhShootException')
+
+        self.mock_spark_msg_create.assert_called_once()
+        self.assertIsNone(rv)
+
+    def test_notify_of_failed_command_2nd_try(self):
+        """
+        Attempt notification that a bot command could not be answered but
+        simulate a case where the notification had to be retried due to some
+        sort of error and this is the second try (1st retry) at sending that
+        notification.
+        Expected behavior:
+
+        - notify_of_failed_command() should do nothing on the 2nd, 3rd, etc
+        try. No Spark message should be sent.
+        - notify_of_failed_command() returns None
+        """
+        self.mock_spark_msg_create.return_value = self.build_spark_api_reply()
+
+        rv = zpark.tasks.notify_of_failed_command('roomId1234',
+                                                  'direct',
+                                                  'joel@zpark.packetmischief',
+                                                  1, # retries
+                                                  3, # max_retries
+                                                  'OhShootException')
+
+        self.assertFalse(self.mock_spark_msg_create.called)
+        self.assertIsNone(rv)
+
+    def test_notify_of_failed_command_max_tries(self):
+        """
+        Attempt notification that a bot command could not be answered but
+        simulate a case where the notification had to be retried due to some
+        sort of error and this is the last retry before max_retries is
+        exceeded.
+        Expected behavior:
+
+        - notify_of_failed_command() currently does nothing under these
+        conditions. No Spark message should be sent.
+        - notify_of_failed_command() returns None
+        """
+        self.mock_spark_msg_create.return_value = self.build_spark_api_reply()
+
+        rv = zpark.tasks.notify_of_failed_command('roomId1234',
+                                                  'direct',
+                                                  'joel@zpark.packetmischief',
+                                                  3, # retries
+                                                  3, # max_retries
+                                                  'OhShootException')
+
+        self.assertFalse(self.mock_spark_msg_create.called)
+        self.assertIsNone(rv)
+
+    @patch('zpark.tasks.task_send_spark_message.apply')
+    def test_notify_of_failed_command_spark_error(self, mock_sendmsg):
+        """
+        Attempt notification that a bot command could not be answered
+        but have the Spark API throw an exception during that notification.
+        Expected behavior:
+
+        - notify_of_failed_command_spark() will re-raise the SparkApiError
+        exception
+        - task_send_spark_message.apply() will be called a single time
+        (no retries due to the mock that's in place)
+        """
+        mock_sendmsg.side_effect = SparkApiError(409)
+
+        with self.assertRaises(SparkApiError):
+            zpark.tasks.notify_of_failed_command('roomId1234',
+                                                 'direct',
+                                                 'joel@zpark.packetmischief',
+                                                 0, # retries
+                                                 3, # max_retries
+                                                 'OhShootException')
+        mock_sendmsg.assert_called_once()
 
