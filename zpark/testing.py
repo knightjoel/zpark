@@ -181,36 +181,50 @@ class ApiV1TestCase(BaseTestCase):
         self.assert_405(r)
 
 
-@patch('zpark.spark_api.messages.create', autospec=True)
 class TaskTestCase(BaseTestCase):
 
-    def test_task_send_spark_message(self, mock_sparkapi):
+    def setUp(self):
+        self.mock_spark_msg_create_patcher = \
+                patch('zpark.spark_api.messages.create', autospec=True)
+        self.mock_spark_msg_create = self.mock_spark_msg_create_patcher.start()
+
+    def tearDown(self):
+        self.mock_spark_msg_create_patcher.stop()
+
+    def build_spark_api_reply(self, toPersonEmail=None, text=None,
+                              roomId=None):
+        my_spark_reply_obj = namedtuple('sparkmsg',
+                                         'toPersonEmail roomId text id'
+                                         ' created')
+        # this is only a subset of the data returned by the API
+        my_spark_reply = my_spark_reply_obj(
+            created='2017-08-09T00:26:11.937Z',
+            id='id123456',
+            roomId=roomId or 'roomId1234',
+            toPersonEmail=toPersonEmail or 'joel@zpark.packetmiscief',
+            text=text or 'this is the message you sent'
+        )
+
+        return my_spark_reply
+
+    def test_task_send_spark_message(self):
         to = u'joel@zpark.packetmischief'
         message = u'Your data center is on fire'
 
-        my_spark_output_obj = namedtuple('sparkmsg',
-                                      'toPersonEmail roomId text id created')
-        # this is only a subset of the data returned by the API
-        my_spark_output = my_spark_output_obj(
-            created='2017-08-09T00:26:11.937Z',
-            id='id123456',
-            roomId=None,
-            toPersonEmail=to,
-            text=message
-        )
+        spark_api_reply = self.build_spark_api_reply(toPersonEmail=to,
+                                                     text=message)
+        self.mock_spark_msg_create.return_value = spark_api_reply
 
-        mock_sparkapi.return_value = my_spark_output
-
-        self.assertEqual(my_spark_output.id,
+        self.assertEqual(spark_api_reply.id,
                          zpark.tasks.task_send_spark_message(to, message))
 
-    def test_task_send_spark_message_retry(self, mock_sparkapi):
+    def test_task_send_spark_message_retry(self):
         to = u'joel@zpark.packetmischief'
         message = u'Your data center is on fire'
 
         e = SparkApiError(429)
 
-        mock_sparkapi.side_effect = [e, None]
+        self.mock_spark_msg_create.side_effect = [e, None]
         mock_retry = patch('zpark.tasks.task_send_spark_message.retry',
                            autospec=True)
         mock_retry_patcher = mock_retry.start()
