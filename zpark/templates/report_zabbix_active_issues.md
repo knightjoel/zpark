@@ -1,6 +1,7 @@
 {% if roomtype == 'group' %}
 Hey there <@personEmail:{{ caller }}>,
 {% endif %}
+
 {% if issues %}
 	{% if issues|count > 1 %}
 There are currently **{{ issues|count }}** active issues (the most recent is first in the list):
