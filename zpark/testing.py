@@ -29,18 +29,21 @@ class BaseTestCase(TestCase):
         pass
 
 
-class ApiV1TestCase(BaseTestCase):
+class ApiTestCase(BaseTestCase):
 
     def setUp(self):
         self.mock_sendmsg_patcher = \
                 patch('zpark.tasks.task_send_spark_message.apply_async',
                       autospec=True)
         self.mock_sendmsg = self.mock_sendmsg_patcher.start()
-        super(ApiV1TestCase, self).setUp()
+        super(ApiTestCase, self).setUp()
 
     def tearDown(self):
         self.mock_sendmsg_patcher.stop()
-        super(ApiV1TestCase, self).tearDown()
+        super(ApiTestCase, self).tearDown()
+
+
+class ApiV1TestCase(ApiTestCase):
 
     ### GET /alert endpoint
     def test_alert_get_w_token(self):
