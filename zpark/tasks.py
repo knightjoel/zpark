@@ -11,7 +11,18 @@ from zpark import app, basedir, jinja2, spark_api, zabbix_api
 from zpark import celery as celery_app
 
 
+__all__ = [
+    'task_dispatch_spark_command',
+    'task_send_spark_message'
+]
+
 logger = get_task_logger(__name__)
+
+
+@celery_app.task
+def task_dispatch_spark_command(webhook):
+
+    pass
 
 
 @celery_app.task(bind=True, default_retry_delay=20, max_retries=3)

@@ -28,6 +28,28 @@ class BaseTestCase(TestCase):
     def tearDown(self):
         pass
 
+    def build_fake_webhook_json(self):
+        return """{
+  "id":"Y2lzY29zcGFyazovL3VzL1dFQkhPT0svZjRlNjA1NjAtNjYwMi00ZmIwLWEyNWEtOTQ5ODgxNjA5NDk3",
+  "name":"Guild Chat to http://requestb.in/1jw0w3x1",
+  "resource":"messages",
+  "event":"created",
+  "filter":"roomId=Y2lzY29zcGFyazovL3VzL1JPT00vY2RlMWRkNDAtMmYwZC0xMWU1LWJhOWMtN2I2NTU2ZDIyMDdi",
+  "orgId": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8xZWI2NWZkZi05NjQzLTQxN2YtOTk3NC1hZDcyY2FlMGUxMGY",
+  "createdBy": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xZjdkZTVjYi04NTYxLTQ2NzEtYmMwMy1iYzk3NDMxNDQ0MmQ",
+  "appId": "Y2lzY29zcGFyazovL3VzL0FQUExJQ0FUSU9OL0MyNzljYjMwYzAyOTE4MGJiNGJkYWViYjA2MWI3OTY1Y2RhMzliNjAyOTdjODUwM2YyNjZhYmY2NmM5OTllYzFm",
+  "ownedBy": "creator",
+  "status": "active",
+  "actorId": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xZjdkZTVjYi04NTYxLTQ2NzEtYmMwMy1iYzk3NDMxNDQ0MmQ",
+  "data":{
+    "id":"Y2lzY29zcGFyazovL3VzL01FU1NBR0UvMzIzZWUyZjAtOWFhZC0xMWU1LTg1YmYtMWRhZjhkNDJlZjlj",
+    "roomId":"Y2lzY29zcGFyazovL3VzL1JPT00vY2RlMWRkNDAtMmYwZC0xMWU1LWJhOWMtN2I2NTU2ZDIyMDdi",
+    "personId":"Y2lzY29zcGFyazovL3VzL1BFT1BMRS9lM2EyNjA4OC1hNmRiLTQxZjgtOTliMC1hNTEyMzkyYzAwOTg",
+    "personEmail":"person@example.com",
+    "created":"2015-12-04T17:33:56.767Z"
+  }
+}"""
+
 
 class ApiTestCase(BaseTestCase):
 
@@ -183,6 +205,208 @@ class ApiV1TestCase(ApiTestCase):
         r = self.client.post(url_for('api_v1.ping'))
 
         self.assert_405(r)
+
+
+class ApiCommonTestCase(ApiTestCase):
+
+    @patch('zpark.tasks.task_dispatch_spark_command.apply_async',
+           autospec=True)
+    def test_handle_spark_webhook(self, mock_task):
+        """
+        Test a successful call to handle_spark_webhook().
+
+        There are no contrived conditions in this test to cause a failure to
+        occur.
+
+        Expected behavior:
+        - The UUT returns a sequence with two elements:
+            - A dict with the correct task ID as one of its elements
+            - An HTTP status code 200
+        - The task_dispatch_spark_command task (mocked) is called once
+        """
+
+        type(mock_task.return_value).id = PropertyMock(return_value='id123abc')
+
+        webhook_data = json.loads(self.build_fake_webhook_json())
+        rv = zpark.api_common.handle_spark_webhook(webhook_data)
+
+        self.assertEqual('id123abc', rv[0]['taskid'])
+        self.assertEqual(200, rv[1])
+        mock_task.assert_called_once_with((webhook_data,))
+
+    @patch('zpark.tasks.task_dispatch_spark_command.apply_async',
+           autospec=True)
+    def test_handle_spark_webhook_fail(self, mock_task):
+        """
+        Test a call to handle_spark_webhook() where an exception is raised.
+
+        The task_dispatch_spark_command function is mocked to throw an
+        exception in this test.
+
+        Expected behavior:
+        - The UUT returns a sequence with two elements:
+            - A dict that contains an error description
+            - An HTTP status code 500
+        - The task_dispatch_spark_command task (mocked) is called once
+        """
+
+        mock_task.side_effect = \
+                zpark.tasks.task_dispatch_spark_command.OperationalError('error')
+
+        webhook_data = json.loads(self.build_fake_webhook_json())
+        rv = zpark.api_common.handle_spark_webhook(webhook_data)
+
+        return_data = rv[0]
+        return_code = rv[1]
+        self.assertEqual('error', list(return_data.keys())[0])
+        self.assertEqual(500, return_code)
+        mock_task.assert_called_once_with((webhook_data,))
+
+    @patch('zpark.tasks.task_dispatch_spark_command.apply_async',
+           autospec=True)
+    def test_handle_spark_webhook_bad_resource(self, mock_task):
+        """
+        Test a call to handle_spark_webhook() where the input data contains
+        an invalid 'resource' attribute.
+
+        Expected behavior:
+        - The UUT returns a sequence with two elements:
+            - A dict that contains an error description
+            - An HTTP status code 400
+        - The task_dispatch_spark_command task (mocked) is not called
+        """
+
+        webhook_data = json.loads(self.build_fake_webhook_json())
+        webhook_data['resource'] = 'rooms'
+        rv = zpark.api_common.handle_spark_webhook(webhook_data)
+
+        return_data = rv[0]
+        return_code = rv[1]
+        self.assertEqual('error', list(return_data.keys())[0])
+        self.assertEqual(400, return_code)
+        self.assertFalse(mock_task.called)
+
+    @patch('zpark.tasks.task_dispatch_spark_command.apply_async',
+           autospec=True)
+    def test_handle_spark_webhook_bad_event(self, mock_task):
+        """
+        Test a call to handle_spark_webhook() where the input data contains
+        an invalid 'event' attribute.
+
+        Expected behavior:
+        - The UUT returns a sequence with two elements:
+            - A dict that contains an error description
+            - An HTTP status code 400
+        - The task_dispatch_spark_command task (mocked) is not called
+        """
+
+        webhook_data = json.loads(self.build_fake_webhook_json())
+        webhook_data['event'] = 'deleted'
+        rv = zpark.api_common.handle_spark_webhook(webhook_data)
+
+        return_data = rv[0]
+        return_code = rv[1]
+        self.assertEqual('error', list(return_data.keys())[0])
+        self.assertEqual(400, return_code)
+        self.assertFalse(mock_task.called)
+
+    @patch('zpark.tasks.task_dispatch_spark_command.apply_async',
+           autospec=True)
+    def test_handle_spark_webhook_bad_resource_and_event(self, mock_task):
+        """
+        Test a call to handle_spark_webhook() where the input data contains
+        an invalid 'resource' and event' attributes.
+
+        Expected behavior:
+        - The UUT returns a sequence with two elements:
+            - A dict that contains an error description
+            - An HTTP status code 400
+        - The task_dispatch_spark_command task (mocked) is not called
+        """
+
+        webhook_data = json.loads(self.build_fake_webhook_json())
+        webhook_data['resource'] = 'rooms'
+        webhook_data['event'] = 'deleted'
+        rv = zpark.api_common.handle_spark_webhook(webhook_data)
+
+        return_data = rv[0]
+        return_code = rv[1]
+        self.assertEqual('error', list(return_data.keys())[0])
+        self.assertEqual(400, return_code)
+        self.assertFalse(mock_task.called)
+
+    @patch('zpark.tasks.task_dispatch_spark_command.apply_async',
+           autospec=True)
+    def test_handle_spark_webhook_missing_resource_elm(self, mock_task):
+        """
+        Test a call to handle_spark_webhook() where the input data is missing
+        the 'resource' element.
+
+        Expected behavior:
+        - The UUT returns a sequence with two elements:
+            - A dict that contains an error description
+            - An HTTP status code 400
+        - The task_dispatch_spark_command task (mocked) is not called
+        """
+
+        webhook_data = json.loads(self.build_fake_webhook_json())
+        del webhook_data['resource']
+        rv = zpark.api_common.handle_spark_webhook(webhook_data)
+
+        return_data = rv[0]
+        return_code = rv[1]
+        self.assertEqual('error', list(return_data.keys())[0])
+        self.assertEqual(400, return_code)
+        self.assertFalse(mock_task.called)
+
+    @patch('zpark.tasks.task_dispatch_spark_command.apply_async',
+           autospec=True)
+    def test_handle_spark_webhook_missing_event_elm(self, mock_task):
+        """
+        Test a call to handle_spark_webhook() where the input data is missing
+        the 'event' element.
+
+        Expected behavior:
+        - The UUT returns a sequence with two elements:
+            - A dict that contains an error description
+            - An HTTP status code 400
+        - The task_dispatch_spark_command task (mocked) is not called
+        """
+
+        webhook_data = json.loads(self.build_fake_webhook_json())
+        del webhook_data['event']
+        rv = zpark.api_common.handle_spark_webhook(webhook_data)
+
+        return_data = rv[0]
+        return_code = rv[1]
+        self.assertEqual('error', list(return_data.keys())[0])
+        self.assertEqual(400, return_code)
+        self.assertFalse(mock_task.called)
+
+    @patch('zpark.tasks.task_dispatch_spark_command.apply_async',
+           autospec=True)
+    def test_handle_spark_webhook_missing_multiple_elms(self, mock_task):
+        """
+        Test a call to handle_spark_webhook() where the input data is missing
+        multiple required elements.
+
+        Expected behavior:
+        - The UUT returns a sequence with two elements:
+            - A dict that contains an error description
+            - An HTTP status code 400
+        - The task_dispatch_spark_command task (mocked) is not called
+        """
+
+        webhook_data = json.loads(self.build_fake_webhook_json())
+        del webhook_data['resource']
+        del webhook_data['event']
+        rv = zpark.api_common.handle_spark_webhook(webhook_data)
+
+        return_data = rv[0]
+        return_code = rv[1]
+        self.assertEqual('error', list(return_data.keys())[0])
+        self.assertEqual(400, return_code)
+        self.assertFalse(mock_task.called)
 
 
 class TaskTestCase(BaseTestCase):

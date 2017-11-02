@@ -6,7 +6,73 @@ from flask import current_app, request
 from flask_restful import abort
 
 from zpark import app
-from zpark.tasks import task_send_spark_message
+from zpark.tasks import *
+
+
+def handle_spark_webhook(data):
+    """
+    Handle a webhook request received from Spark.
+
+    What's interesting here is that because of Spark's security architecture,
+    the webhook doesn't actually provide the plain text of a "message"
+    webhook in the webhook notification. We have to issue a request back
+    to Spark to get the plain text and only then do we know what the actual
+    command was that the user issued.
+
+    Because a Spark API call is needed to properly handle the webhook, we
+    defer the work to an async task in order to provide a speedy reply to the
+    Spark webhook client.
+
+    The Zpark bot only responds to webhooks sent in response to a new
+    message being created.
+
+    Args:
+        data (dict): The JSON data that Spark POSTed to our webhook URL.
+
+    Returns:
+        A sequence which contains two elements:
+            - A dict containing some status information about how we processed
+                the webhook request.
+            - An HTTP status code which will be returned to the Spark webhook
+                client.
+    """
+
+    try:
+        if data['resource'] != 'messages' or data['event'] != 'created':
+            app.logger.error("Received a webhook notification that is not"
+                    " supported: resource:{} event:{} name:\"{}\""
+                    .format(data['resource'], data['event'], data['name']))
+            return (
+                {'error': 'No support for that type of resource and/or event'},
+                400
+            )
+    except KeyError as e:
+        app.logger.error("Received webhook data that is incomplete or"
+                " malformed: {}".format(e))
+        return (
+            {'error': 'The webhook envelope appears to be malformed'},
+            400
+        )
+
+    try:
+        task = task_dispatch_spark_command.apply_async((data,))
+    except (TypeError, task_dispatch_spark_command.OperationalError) as e:
+        app.logger.error("Unable to create task 'task_dispatch_spark_command'."
+                " Spark command response has been dropped! {}: {}\n{}"
+                .format(type(e).__name__, e, traceback.format_exc()))
+        return (
+            {'error': 'Unable to create worker task'},
+            500
+        )
+
+    app.logger.info("A Spark command was received (task {}):"
+                        " webhook:\"{}\" resource:{} event:{}"
+                        .format(task.id, data['name'], data['resource'],
+                                data['event']))
+
+    return ({
+        'taskid': task.id
+    }, 200)
 
 
 def ping(api_version):
