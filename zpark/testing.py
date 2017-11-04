@@ -595,7 +595,7 @@ class TaskTestCase(BaseTestCase):
         exception from Zabbix
         - The retry mock should be called with the Zabbix exception as an
         argument
-        - Zabbix API (mock) is called twice
+        - Zabbix API (mock) is called once
         - notify_of_failed_command() (mock) should be called once
         """
         report_args = ('roomid123abc',
@@ -632,8 +632,8 @@ class TaskTestCase(BaseTestCase):
         exception from Zabbix
         - The retry mock should be called with the Spark exception as an
         argument
-        - Zabbix API (mock) is called twice
-        - Spark API (mock) is called twice
+        - Zabbix API (mock) is called once
+        - Spark API (mock) is called once
         """
         report_args = ('roomid123abc',
                        'direct',
