@@ -95,9 +95,9 @@ def task_dispatch_spark_command(self, webhook_data):
                 .format(cmd[:79], ellipsis, msg.personEmail))
         return False
 
-    logger.info('Dispatched command "{}{}" to task {}'
-            .format(cmd[:79], ellipsis, task[0]))
-    task[0].apply_async(args=(*task[1],))
+    asynctask = task[0].apply_async(args=(*task[1],))
+    logger.info('Dispatched command "{}{}" to task {} with taskid {}'
+            .format(cmd[:79], ellipsis, task[0], asynctask.id))
     return True
 
 
