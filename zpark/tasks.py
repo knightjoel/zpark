@@ -1,5 +1,6 @@
 import datetime as dt
 import os
+import re
 
 from celery import Celery
 import celery.signals
@@ -19,10 +20,85 @@ __all__ = [
 logger = get_task_logger(__name__)
 
 
-@celery_app.task
-def task_dispatch_spark_command(webhook):
+@celery_app.task(bind=True, default_retry_delay=20, max_retries=3)
+def task_dispatch_spark_command(self, webhook_data):
+    """
+    Parse the incoming webhook data and run the appropriate task to handle
+    the request.
 
-    pass
+    There is an assumption here that the API layer has checked that the
+    webhook data is for a message creation and not for any other
+    resource/event combination.
+
+    Args:
+        webhook_data (dict): The JSON data that the Spark webhook provided.
+
+    Returns:
+        False: When the command could not be dispatched.
+        True: When the command was successfully dispatched.
+
+    Raises:
+        SparkApiError: The Spark API returned an error and
+            despite retrying the API call some number of times, the error
+            persisted. SparkApiError is re-raised to bubble the error
+            down the stack.
+    """
+
+    payload = webhook_data['data']
+    logger.debug('Dispatching webhook request: id:{} name:"{}" actorId:{}'
+            ' [id:{} roomId:{} personEmail:{}]'
+            .format(webhook_data['id'],
+                    webhook_data['name'],
+                    webhook_data['actorId'],
+                    payload['id'],
+                    payload['roomId'],
+                    payload['personEmail']))
+    try:
+        logger.debug('Querying Spark for message id {}'.format(payload['id']))
+        msg = spark_api.messages.get(payload['id'])
+    except SparkApiError as e:
+        msg = "The Spark API returned an error: {}".format(e)
+        logger.error(msg)
+        self.retry(exc=e)
+
+    cmd = msg.text
+    ellipsis = ' (...)' if len(cmd) > 79 else ''
+
+    # validate the command looks sane and safe
+    if not re.fullmatch('^[a-zA-Z0-9 ]+$', msg.text):
+        logger.warning('Received a command with invalid characters in it:'
+                ' "{}{}"'.format(cmd[:79], ellipsis))
+        return False
+
+    try:
+        logger.debug('Querying Spark for room id {}'.format(msg.roomId))
+        room = spark_api.rooms.get(msg.roomId)
+    except SparkApiError as e:
+        msg = "The Spark API returned an error: {}".format(e)
+        logger.error(msg)
+        self.retry(exc=e)
+
+    # strip bot's name from the start of the command
+    if room.type == 'group':
+        cmd = re.split('[^a-zA-Z0-9]+', cmd, 1)[1]
+
+    dispatch_map = {
+        'show issues': (
+            task_report_zabbix_active_issues,
+            (msg.roomId, room.type, msg.personEmail)
+        )
+    }
+
+    task = dispatch_map.get(cmd, None)
+    if not task:
+        logger.debug('Received an unknown command:"{}{}" from:{}'
+                .format(cmd[:79], ellipsis, msg.personEmail))
+        return False
+
+    logger.info('Dispatched command "{}{}" to task {}'
+            .format(cmd[:79], ellipsis, task[0]))
+    task[0].apply_async(args=(*task[1],))
+    return True
 
 
 @celery_app.task(bind=True, default_retry_delay=20, max_retries=3)

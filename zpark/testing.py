@@ -1,6 +1,6 @@
 from collections import namedtuple
 import json
-from unittest.mock import PropertyMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 from celery.exceptions import Retry
 from ciscosparkapi import SparkApiError
@@ -28,27 +28,49 @@ class BaseTestCase(TestCase):
     def tearDown(self):
         pass
 
+    # Thse build_fake_X functions are all meant to be used together. The
+    # data they return are all consistent with each other (same roomIds, for
+    # example).
     def build_fake_webhook_json(self):
         return """{
   "id":"Y2lzY29zcGFyazovL3VzL1dFQkhPT0svZjRlNjA1NjAtNjYwMi00ZmIwLWEyNWEtOTQ5ODgxNjA5NDk3",
-  "name":"Guild Chat to http://requestb.in/1jw0w3x1",
+  "name":"Zpark UT test webhook",
   "resource":"messages",
   "event":"created",
-  "filter":"roomId=Y2lzY29zcGFyazovL3VzL1JPT00vY2RlMWRkNDAtMmYwZC0xMWU1LWJhOWMtN2I2NTU2ZDIyMDdi",
   "orgId": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8xZWI2NWZkZi05NjQzLTQxN2YtOTk3NC1hZDcyY2FlMGUxMGY",
   "createdBy": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xZjdkZTVjYi04NTYxLTQ2NzEtYmMwMy1iYzk3NDMxNDQ0MmQ",
   "appId": "Y2lzY29zcGFyazovL3VzL0FQUExJQ0FUSU9OL0MyNzljYjMwYzAyOTE4MGJiNGJkYWViYjA2MWI3OTY1Y2RhMzliNjAyOTdjODUwM2YyNjZhYmY2NmM5OTllYzFm",
-  "ownedBy": "creator",
+  "ownedBy": "Joel",
   "status": "active",
-  "actorId": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xZjdkZTVjYi04NTYxLTQ2NzEtYmMwMy1iYzk3NDMxNDQ0MmQ",
+  "actorId": "personid12345",
   "data":{
-    "id":"Y2lzY29zcGFyazovL3VzL01FU1NBR0UvMzIzZWUyZjAtOWFhZC0xMWU1LTg1YmYtMWRhZjhkNDJlZjlj",
-    "roomId":"Y2lzY29zcGFyazovL3VzL1JPT00vY2RlMWRkNDAtMmYwZC0xMWU1LWJhOWMtN2I2NTU2ZDIyMDdi",
-    "personId":"Y2lzY29zcGFyazovL3VzL1BFT1BMRS9lM2EyNjA4OC1hNmRiLTQxZjgtOTliMC1hNTEyMzkyYzAwOTg",
-    "personEmail":"person@example.com",
+    "id":"msgid12345",
+    "roomId":"roomid12345",
+    "personId":"personid12345",
+    "personEmail":"joel@zpark.packetmischief",
     "created":"2015-12-04T17:33:56.767Z"
   }
 }"""
+
+    def build_fake_webhook_msg_tuple(self, text=None):
+        t = namedtuple('msg', 'id roomId roomType text personId personEmail')
+        return t(
+            id='msgid12345',
+            roomId='roomid12345',
+            roomType='group',
+            text=text or 'Zpark show issues',
+            personId='personid12345',
+            personEmail='joel@zpark.packetmischief'
+        )
+
+    def build_fake_room_tuple(self, roomType=None):
+        t = namedtuple('room', 'id title type')
+        room = t(
+            id='roomid12345',
+            title='Zpark UT',
+            type=roomType or 'group'
+        )
+        return room
 
 
 class ApiTestCase(BaseTestCase):
@@ -416,6 +438,14 @@ class TaskTestCase(BaseTestCase):
                 patch('zpark.spark_api.messages.create', autospec=True)
         self.mock_spark_msg_create = self.mock_spark_msg_create_patcher.start()
 
+        self.mock_spark_msg_get_patcher = \
+                patch('zpark.spark_api.messages.get', autospec=True)
+        self.mock_spark_msg_get = self.mock_spark_msg_get_patcher.start()
+
+        self.mock_spark_rooms_get_patcher = \
+                patch('zpark.spark_api.rooms.get', autospec=True)
+        self.mock_spark_rooms_get = self.mock_spark_rooms_get_patcher.start()
+
         self.mock_zabbixapi_patcher = \
             patch('zpark.pyzabbix.ZabbixAPIObjectClass.__getattr__',
                   autospec=True)
@@ -430,6 +460,8 @@ class TaskTestCase(BaseTestCase):
 
     def tearDown(self):
         self.mock_spark_msg_create_patcher.stop()
+        self.mock_spark_msg_get_patcher.stop()
+        self.mock_spark_rooms_get_patcher.stop()
         self.mock_zabbixapi_patcher.stop()
 
     def build_spark_api_reply(self, toPersonEmail=None, text=None,
@@ -757,4 +789,261 @@ class TaskTestCase(BaseTestCase):
                                                  3, # max_retries
                                                  'OhShootException')
         mock_sendmsg.assert_called_once()
+
+    @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
+    def test_task_dispatch_spark_command(self, mock_task):
+        """
+        Test the UUT in a successful, non-contrived scenario.
+
+        Note this test does NOT check that the command was actually
+        dispatched. There are individual tests that check each command
+        is dispatched properly. This test just checks the stuff that leads
+        up to actual dispatch. However, in order for the UUT to run its
+        course, we mock the task that we expect it to run.
+
+        Expected behavior:
+        - UUT will return True
+        - Spark API 'messages.get' is called once
+        - Spark API 'rooms.get' is called once
+        """
+
+        self.mock_spark_msg_get.return_value = \
+                self.build_fake_webhook_msg_tuple()
+        self.mock_spark_rooms_get.return_value = self.build_fake_room_tuple()
+        webhook_data = json.loads(self.build_fake_webhook_json())
+
+        rv = zpark.tasks.task_dispatch_spark_command(webhook_data)
+
+        self.assertTrue(rv)
+        self.mock_spark_msg_get.assert_called_once()
+        self.mock_spark_rooms_get.assert_called_once()
+
+    @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
+    def test_task_dispatch_spark_command_unknown(self, mock_task):
+        """
+        Test proper handling of an unknown command.
+
+        Expected behavior:
+        - UUT returns False
+        - No task is dispatched
+        """
+
+        self.mock_spark_msg_get.return_value = \
+                self.build_fake_webhook_msg_tuple(
+                        text='sudo make me a sandwich')
+        self.mock_spark_rooms_get.return_value = self.build_fake_room_tuple()
+        webhook_data = json.loads(self.build_fake_webhook_json())
+
+        rv = zpark.tasks.task_dispatch_spark_command(webhook_data)
+
+        self.assertFalse(rv)
+        self.assertFalse(mock_task.called)
+
+    @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
+    def test_task_dispatch_spark_command_show_issues(self, mock_task):
+        """
+        Test dispatching of command "show issues"
+
+        Expected behavior:
+        - The appropriate task is fired asynchronously
+        """
+
+        self.mock_spark_msg_get.return_value = \
+                self.build_fake_webhook_msg_tuple()
+        self.mock_spark_rooms_get.return_value = self.build_fake_room_tuple()
+        webhook_data = json.loads(self.build_fake_webhook_json())
+
+        zpark.tasks.task_dispatch_spark_command(webhook_data)
+
+        mock_task.assert_called_once_with(args=(
+            self.mock_spark_rooms_get.return_value.id,
+            self.mock_spark_rooms_get.return_value.type,
+            self.mock_spark_msg_get.return_value.personEmail))
+
+    @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
+    def test_task_dispatch_spark_command_direct(self, mock_task):
+        """
+        Test dispatching of commands received in a 'direct' room.
+
+        Commands in a direct room do not have the bot's name prefixed onto
+        the text of the command. Ensure the UUT accounts for that by
+        checking that the expected task (mock) is dispatched.
+
+        Expected behavior:
+        - The UUT returns True
+        - The appropriate task is fired asynchronously
+        """
+
+        self.mock_spark_msg_get.return_value = \
+                self.build_fake_webhook_msg_tuple(text='show issues')
+        self.mock_spark_rooms_get.return_value = \
+                self.build_fake_room_tuple(roomType='direct')
+        webhook_data = json.loads(self.build_fake_webhook_json())
+
+        rv = zpark.tasks.task_dispatch_spark_command(webhook_data)
+
+        self.assertTrue(rv)
+        mock_task.assert_called_once_with(args=(
+            self.mock_spark_rooms_get.return_value.id,
+            self.mock_spark_rooms_get.return_value.type,
+            self.mock_spark_msg_get.return_value.personEmail))
+
+    @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
+    def test_task_dispatch_spark_command_group(self, mock_task):
+        """
+        Test dispatching of commands received in a 'group' room.
+
+        Commands in a group room have the bot's name prefixed onto
+        the text of the command. Ensure the UUT accounts for that by
+        checking that the expected task (mock) is dispatched and the UUT
+        doesn't bail with an "unknown command" error.
+
+        Expected behavior:
+        - The appropriate task is fired asynchronously
+        """
+
+        self.mock_spark_msg_get.return_value = \
+                self.build_fake_webhook_msg_tuple(text='Zpark show issues')
+        self.mock_spark_rooms_get.return_value = \
+                self.build_fake_room_tuple(roomType='group')
+        webhook_data = json.loads(self.build_fake_webhook_json())
+
+        rv = zpark.tasks.task_dispatch_spark_command(webhook_data)
+
+        self.assertTrue(rv)
+        mock_task.assert_called_once_with(args=(
+            self.mock_spark_rooms_get.return_value.id,
+            self.mock_spark_rooms_get.return_value.type,
+            self.mock_spark_msg_get.return_value.personEmail))
+
+    def test_task_dispatch_spark_command_spark_fail_msg(self):
+        """
+        Test the UUT can handle a Spark API error when getting message
+        details.
+
+        Expected behavior:
+        - UUT will raise SparkApiError
+        - Spark API 'messages.get' is called once
+        """
+
+        e = SparkApiError(404)
+        self.mock_spark_msg_get.side_effect = e
+        webhook_data = json.loads(self.build_fake_webhook_json())
+
+        with self.assertRaises(SparkApiError):
+            zpark.tasks.task_dispatch_spark_command(webhook_data)
+
+        self.mock_spark_msg_get.assert_called_once()
+
+    @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
+    def test_task_dispatch_spark_command_spark_fail_msg_retry(self, mock_task):
+        """
+        Test the UUT will attempt a retry when it receives a SparkApiError
+        when retrieving message details.
+
+        Expected behavior:
+        - UUT will raise Retry when it encounters SparkApiError
+        - The Retry exception (mock) is called with the SparkApiError as an
+            argument
+        - A task is not dispatched
+        """
+
+        e = SparkApiError(409)
+        self.mock_spark_msg_get.side_effect = e
+        mock_retry = patch('zpark.tasks.task_dispatch_spark_command.retry',
+                           autospec=True)
+        mock_retry_patcher = mock_retry.start()
+        mock_retry_patcher.side_effect = Retry
+        webhook_data = json.loads(self.build_fake_webhook_json())
+
+        with self.assertRaises(Retry):
+            zpark.tasks.task_dispatch_spark_command.apply(args=(webhook_data,))
+
+        mock_retry_patcher.assert_called_with(exc=e)
+        self.assertFalse(mock_task.called)
+
+        mock_retry.stop()
+
+    def test_task_dispatch_spark_command_spark_fail_room(self):
+        """
+        Test the UUT can handle a Spark API error when getting room
+        details.
+
+        Expected behavior:
+        - UUT will raise SparkApiError
+        - Spark API 'messages.get' is called once
+        """
+
+        e = SparkApiError(404)
+        self.mock_spark_rooms_get.side_effect = e
+        self.mock_spark_msg_get.return_value = \
+                self.build_fake_webhook_msg_tuple()
+        webhook_data = json.loads(self.build_fake_webhook_json())
+
+        with self.assertRaises(SparkApiError):
+            zpark.tasks.task_dispatch_spark_command(webhook_data)
+
+        self.mock_spark_rooms_get.assert_called_once()
+
+    @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
+    def test_task_dispatch_spark_command_spark_fail_room_retry(self,
+                                                               mock_task):
+        """
+        Test the UUT will attempt a retry when it receives a SparkApiError
+        when retrieving room details.
+
+        Expected behavior:
+        - UUT will raise Retry when it encounters SparkApiError
+        - The Retry exception (mock) is called with the SparkApiError as an
+            argument
+        - A task is not dispatched
+        """
+
+        e = SparkApiError(409)
+        self.mock_spark_rooms_get.side_effect = e
+        self.mock_spark_msg_get.return_value = \
+                self.build_fake_webhook_msg_tuple()
+        mock_retry = patch('zpark.tasks.task_dispatch_spark_command.retry',
+                           autospec=True)
+        mock_retry_patcher = mock_retry.start()
+        mock_retry_patcher.side_effect = Retry
+        webhook_data = json.loads(self.build_fake_webhook_json())
+
+        with self.assertRaises(Retry):
+            zpark.tasks.task_dispatch_spark_command.apply(args=(webhook_data,))
+
+        mock_retry_patcher.assert_called_with(exc=e)
+        self.assertFalse(mock_task.called)
+
+        mock_retry.stop()
+
+    @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
+    def test_task_dispatch_spark_command_invalid_chars(self, mock_task):
+        """
+        Test the UUT will reject commands that are non-alphanumeric.
+
+        Expected behavior:
+        - UUT will return False
+        - A task is not dispatched
+        """
+
+        test_cmds = (
+            '!show issues',
+            '#show issues',
+            "'; select * from users --",
+            '&& ls -l',
+            '<http://www.google.com>',
+            'http://www.google.com'
+        )
+
+        self.mock_spark_rooms_get.return_value = self.build_fake_room_tuple()
+        webhook_data = json.loads(self.build_fake_webhook_json())
+
+        for c in test_cmds:
+            self.mock_spark_msg_get.return_value = \
+                    self.build_fake_webhook_msg_tuple(text=c)
+            rv = zpark.tasks.task_dispatch_spark_command(webhook_data)
+
+            self.assertFalse(rv)
+            self.assertFalse(mock_task.called)
 
