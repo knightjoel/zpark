@@ -228,6 +228,41 @@ class ApiV1TestCase(ApiTestCase):
 
         self.assert_405(r)
 
+    ### POST /webhook endpoint
+    @patch('zpark.api_common.handle_spark_webhook')
+    def test_webhook_post(self, mock_apicommon):
+        """
+        Test UUT without any contrived failure conditions.
+
+        Expected results:
+        - UUT returns HTTP 200 status code
+        - UUT calls api_common.handle_spark_webhook once with the UUT input
+            JSON as a dict.
+        """
+
+        json_input = self.build_fake_webhook_json()
+        mock_apicommon.return_value = ('{}', 200)
+
+        r = self.client.post(url_for('api_v1.webhook'),
+                             data=json_input,
+                             content_type='application/json')
+        self.assert_200(r)
+        mock_apicommon.assert_called_once_with(
+                json.loads(json_input))
+
+
+    ### GET /webhook endpoint
+    def test_webhook_get(self):
+        """
+        Test UUT returns 405 on GET
+
+        Expected results:
+        - UUT returns HTTP 405 status code
+        """
+
+        r = self.client.get(url_for('api_v1.webhook'))
+        self.assert_405(r)
+
 
 class ApiCommonTestCase(ApiTestCase):
 

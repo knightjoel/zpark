@@ -1,4 +1,4 @@
-from flask import Blueprint
+from flask import Blueprint, request
 from flask_restful import Api, Resource, reqparse
 
 from zpark import app, api_common
@@ -44,6 +44,17 @@ class Ping(Resource):
         app.logger.info("API: ping")
         return api_common.ping(api_version=API_VERSION)
 
+class Webhook(Resource):
+
+    def post(self):
+        reqjson = request.get_json()
+        app.logger.info("API: webhook callback received: id:{} name:\"{}\""
+                .format(reqjson.get('id', '<Unknown>'),
+                        reqjson.get('name', '<Unknown>')))
+
+        return api_common.handle_spark_webhook(reqjson)
+
 api_v1.add_resource(Ping, '/ping')
 api_v1.add_resource(Alert, '/alert')
+api_v1.add_resource(Webhook, '/webhook')
 
