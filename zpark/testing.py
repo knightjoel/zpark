@@ -465,6 +465,90 @@ class ApiCommonTestCase(ApiTestCase):
         self.assertEqual(400, return_code)
         self.assertFalse(mock_task.called)
 
+    def test_authenticate_webhook_disabled(self):
+        """
+        Test the authentication routine when authc is disabled.
+
+        Expected behavior:
+        - UUT returns True
+        """
+
+        if 'SPARK_TRUSTED_USERS' in zpark.app.config:
+            del zpark.app.config['SPARK_TRUSTED_USERS']
+
+        webhook_data = json.loads(self.build_fake_webhook_json())
+        rv = zpark.api_common.authenticate_webhook(webhook_data)
+
+        self.assertTrue(rv)
+
+    def test_authenticate_webhook_failed(self):
+        """
+        Test the authentication routine when the given personEmail is not
+        found in the list of trusted users.
+
+        Expected behavior:
+        - UUT returns False
+        """
+
+        if 'SPARK_TRUSTED_USERS' in zpark.app.config:
+            orig_stu = zpark.app.config['SPARK_TRUSTED_USERS']
+        else:
+            orig_stu = None
+        zpark.app.config['SPARK_TRUSTED_USERS'] = ['trust@zpark']
+
+        webhook_data = json.loads(self.build_fake_webhook_json())
+        webhook_data['data']['personEmail'] = 'notrust@zpark'
+        rv = zpark.api_common.authenticate_webhook(webhook_data)
+
+        self.assertFalse(rv)
+
+        if orig_stu:
+            zpark.app.config['SPARK_TRUSTED_USERS'] = orig_stu
+        else:
+            del zpark.app.config['SPARK_TRUSTED_USERS']
+
+    def test_authenticate_webhook_success(self):
+        """
+        Test the authentication routine when the given personEmail is
+        found in the list of trusted users.
+
+        Expected behavior:
+        - UUT returns True
+        """
+
+        if 'SPARK_TRUSTED_USERS' in zpark.app.config:
+            orig_stu = zpark.app.config['SPARK_TRUSTED_USERS']
+            zpark.app.config['SPARK_TRUSTED_USERS'].append(
+                    'trust@zpark')
+        else:
+            orig_stu = None
+            zpark.app.config['SPARK_TRUSTED_USERS'] = ['trust@zpark']
+
+        webhook_data = json.loads(self.build_fake_webhook_json())
+        webhook_data['data']['personEmail'] = 'trust@zpark'
+        rv = zpark.api_common.authenticate_webhook(webhook_data)
+
+        self.assertTrue(rv)
+
+        if orig_stu:
+            zpark.app.config['SPARK_TRUSTED_USERS'] = orig_stu
+        else:
+            del zpark.app.config['SPARK_TRUSTED_USERS']
+
+    def test_authenticate_webhook_invalid_json(self):
+        """
+        Test the authentication routine when the given a JSON dict that is
+        missing some expected elements.
+
+        Expected behavior:
+        - UUT raises KeyError
+        """
+        webhook_data = json.loads(self.build_fake_webhook_json())
+        del webhook_data['data']['personEmail']
+
+        with self.assertRaises(KeyError):
+            zpark.api_common.authenticate_webhook(webhook_data)
+
 
 class TaskTestCase(BaseTestCase):
 

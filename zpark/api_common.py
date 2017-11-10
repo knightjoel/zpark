@@ -9,6 +9,42 @@ from zpark import app
 from zpark.tasks import *
 
 
+def authenticate_webhook(webhook_data):
+    """
+    Authenticate webhook requests so only trusted users can issue commands.
+
+    This implementation of the authentication scheme is very basic, but
+    effective for now. Crawl, walk, run. Authentication is successful if
+    the 'personEmail' in the incoming webhook data is found in a list of
+    trusted email addresses.
+
+    Args:
+        webhook_data (dict): The JSON data that Spark POSTed to our webhook
+            URL.
+
+    Returns:
+        True: if authentication is successful or if the list of trusted
+            users has not been configured (signalling that authentication
+            should not be used).
+        False: if authentication fails.
+
+    Raises:
+        KeyError: if the webhook_data dictionary is missing expected keys.
+    """
+
+    try:
+        caller = webhook_data['data']['personEmail']
+    except KeyError as e:
+        app.logger.error("Received corrupt or incomplete JSON data: {}"
+                .format(e))
+        raise
+
+    if 'SPARK_TRUSTED_USERS' in app.config:
+        return caller in app.config['SPARK_TRUSTED_USERS']
+    else:
+        return True
+
+
 def handle_spark_webhook(data):
     """
     Handle a webhook request received from Spark.
