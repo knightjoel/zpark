@@ -60,7 +60,8 @@ def handle_spark_webhook(data):
     Spark webhook client.
 
     The Zpark bot only responds to webhooks sent in response to a new
-    message being created.
+    message being created and only if the actor (caller) is part of the
+    authorized list of Zpark users.
 
     Args:
         data (dict): The JSON data that Spark POSTed to our webhook URL.
@@ -81,6 +82,16 @@ def handle_spark_webhook(data):
             return (
                 {'error': 'No support for that type of resource and/or event'},
                 400
+            )
+
+        if not authorize_webhook(data):
+            return (
+                # Spark API will disable the webhook if it receives too many
+                # non 20x replies in a given time window. Since this code
+                # path can be entered based on user input, play it safe and
+                # return 200 so as not to allow for a DoS.
+                {'error': 'User not authorized'},
+                200
             )
     except KeyError as e:
         app.logger.error("Received webhook data that is incomplete or"

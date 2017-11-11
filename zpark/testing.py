@@ -1,5 +1,6 @@
 from collections import namedtuple
 import json
+import unittest
 from unittest.mock import MagicMock, PropertyMock, patch
 
 from celery.exceptions import Retry
@@ -283,7 +284,7 @@ class ApiCommonTestCase(ApiTestCase):
         Test a successful call to handle_spark_webhook().
 
         There are no contrived conditions in this test to cause a failure to
-        occur.
+        occur. Authorization is also disabled.
 
         Expected behavior:
         - The UUT returns a sequence with two elements:
@@ -474,6 +475,82 @@ class ApiCommonTestCase(ApiTestCase):
         self.assertEqual('error', list(return_data.keys())[0])
         self.assertEqual(400, return_code)
         self.assertFalse(mock_task.called)
+
+    @patch('zpark.tasks.task_dispatch_spark_command.apply_async',
+           autospec=True)
+    def test_handle_spark_webhook_good_authz(self, mock_task):
+        """
+        Test the webhook handler's behavior when authorization succeeds.
+
+        Expected behavior:
+        - UUT returns a sequence with two elements:
+            - A dict containing the task id
+            - An HTTP status code 200
+        - The task_dispatch_spark_command task (mocked) is called
+        """
+
+        webhook_data = json.loads(self.build_fake_webhook_json())
+        self.set_spark_trusted_user('trust@zpark')
+        webhook_data['data']['personEmail'] = 'trust@zpark'
+
+        rv = zpark.api_common.handle_spark_webhook(webhook_data)
+
+        return_data = rv[0]
+        return_code = rv[1]
+        self.assertEqual('taskid', list(return_data.keys())[0])
+        self.assertEqual(200, return_code)
+        mock_task.assert_called_once()
+
+    @patch('zpark.tasks.task_dispatch_spark_command.apply_async',
+           autospec=True)
+    def test_handle_spark_webhook_fail_authz(self, mock_task):
+        """
+        Test the webhook handler's behavior when authorization fails.
+
+        Expected behavior:
+        - UUT returns a sequence with two elements:
+            - A dict containing an error message
+            - An HTTP status code 200
+        - The task_dispatch_spark_command task (mocked) is not called
+        """
+
+        webhook_data = json.loads(self.build_fake_webhook_json())
+        self.set_spark_trusted_user('trust@zpark')
+        webhook_data['data']['personEmail'] = 'nottrust@zpark'
+
+        rv = zpark.api_common.handle_spark_webhook(webhook_data)
+
+        return_data = rv[0]
+        return_code = rv[1]
+        self.assertEqual('error', list(return_data.keys())[0])
+        self.assertEqual(200, return_code)
+        self.assertFalse(mock_task.called)
+
+    @patch('zpark.tasks.task_dispatch_spark_command.apply_async',
+           autospec=True)
+    def test_handle_spark_webhook_authz_disabled(self, mock_task):
+        """
+        Test the webhook handler's behavior when authorization is disabled.
+
+        The test framework disables authorization for us, so no explicit
+        setup is required.
+
+        Expected behavior:
+        - UUT returns a sequence with two elements:
+            - A dict containing the task id
+            - An HTTP status code 200
+        - The task_dispatch_spark_command task (mocked) is called
+        """
+
+        webhook_data = json.loads(self.build_fake_webhook_json())
+
+        rv = zpark.api_common.handle_spark_webhook(webhook_data)
+
+        return_data = rv[0]
+        return_code = rv[1]
+        self.assertEqual('taskid', list(return_data.keys())[0])
+        self.assertEqual(200, return_code)
+        mock_task.assert_called_once()
 
     def test_authorize_webhook_disabled(self):
         """
