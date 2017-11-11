@@ -24,6 +24,11 @@ class BaseTestCase(TestCase):
     def setUp(self):
         self.sb_api_token = ('Token', zpark.app.config['ZPARK_API_TOKEN'])
         zpark.app.logger.setLevel(999)
+        # disable authorization
+        try:
+            del zpark.app.config['SPARK_TRUSTED_USERS']
+        except KeyError:
+            pass
 
     def tearDown(self):
         pass
@@ -72,6 +77,11 @@ class BaseTestCase(TestCase):
         )
         return room
 
+    def set_spark_trusted_user(self, personEmail):
+        if not 'SPARK_TRUSTED_USERS' in zpark.app.config:
+            zpark.app.config['SPARK_TRUSTED_USERS'] = [personEmail]
+        else:
+            zpark.app.config['SPARK_TRUSTED_USERS'].append(personEmail)
 
 class ApiTestCase(BaseTestCase):
 
@@ -473,9 +483,6 @@ class ApiCommonTestCase(ApiTestCase):
         - UUT returns True
         """
 
-        if 'SPARK_TRUSTED_USERS' in zpark.app.config:
-            del zpark.app.config['SPARK_TRUSTED_USERS']
-
         webhook_data = json.loads(self.build_fake_webhook_json())
         rv = zpark.api_common.authorize_webhook(webhook_data)
 
@@ -490,22 +497,13 @@ class ApiCommonTestCase(ApiTestCase):
         - UUT returns False
         """
 
-        if 'SPARK_TRUSTED_USERS' in zpark.app.config:
-            orig_stu = zpark.app.config['SPARK_TRUSTED_USERS']
-        else:
-            orig_stu = None
-        zpark.app.config['SPARK_TRUSTED_USERS'] = ['trust@zpark']
+        self.set_spark_trusted_user('trust@zpark')
 
         webhook_data = json.loads(self.build_fake_webhook_json())
         webhook_data['data']['personEmail'] = 'notrust@zpark'
         rv = zpark.api_common.authorize_webhook(webhook_data)
 
         self.assertFalse(rv)
-
-        if orig_stu:
-            zpark.app.config['SPARK_TRUSTED_USERS'] = orig_stu
-        else:
-            del zpark.app.config['SPARK_TRUSTED_USERS']
 
     def test_authorize_webhook_success(self):
         """
@@ -516,24 +514,13 @@ class ApiCommonTestCase(ApiTestCase):
         - UUT returns True
         """
 
-        if 'SPARK_TRUSTED_USERS' in zpark.app.config:
-            orig_stu = zpark.app.config['SPARK_TRUSTED_USERS']
-            zpark.app.config['SPARK_TRUSTED_USERS'].append(
-                    'trust@zpark')
-        else:
-            orig_stu = None
-            zpark.app.config['SPARK_TRUSTED_USERS'] = ['trust@zpark']
+        self.set_spark_trusted_user('trust@zpark')
 
         webhook_data = json.loads(self.build_fake_webhook_json())
         webhook_data['data']['personEmail'] = 'trust@zpark'
         rv = zpark.api_common.authorize_webhook(webhook_data)
 
         self.assertTrue(rv)
-
-        if orig_stu:
-            zpark.app.config['SPARK_TRUSTED_USERS'] = orig_stu
-        else:
-            del zpark.app.config['SPARK_TRUSTED_USERS']
 
     def test_authorize_webhook_invalid_json(self):
         """
