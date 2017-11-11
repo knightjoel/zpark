@@ -9,12 +9,12 @@ from zpark import app
 from zpark.tasks import *
 
 
-def authenticate_webhook(webhook_data):
+def authorize_webhook(webhook_data):
     """
-    Authenticate webhook requests so only trusted users can issue commands.
+    Authorize webhook requests so only trusted users can issue commands.
 
-    This implementation of the authentication scheme is very basic, but
-    effective for now. Crawl, walk, run. Authentication is successful if
+    This implementation of the authorization scheme is very basic, but
+    effective for now. Crawl, walk, run. Authorization is successful if
     the 'personEmail' in the incoming webhook data is found in a list of
     trusted email addresses.
 
@@ -23,10 +23,10 @@ def authenticate_webhook(webhook_data):
             URL.
 
     Returns:
-        True: if authentication is successful or if the list of trusted
-            users has not been configured (signalling that authentication
+        True: if authorization is successful or if the list of trusted
+            users has not been configured (signalling that authorization
             should not be used).
-        False: if authentication fails.
+        False: if authorization fails.
 
     Raises:
         KeyError: if the webhook_data dictionary is missing expected keys.
