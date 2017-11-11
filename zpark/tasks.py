@@ -30,6 +30,9 @@ def task_dispatch_spark_command(self, webhook_data):
     webhook data is for a message creation and not for any other
     resource/event combination.
 
+    Commands are case in-sensitive (makes it easier on mobile devices that
+    want to capitalize the first word of sentences).
+
     Args:
         webhook_data (dict): The JSON data that the Spark webhook provided.
 
@@ -89,7 +92,7 @@ def task_dispatch_spark_command(self, webhook_data):
         )
     }
 
-    task = dispatch_map.get(cmd, None)
+    task = dispatch_map.get(cmd.lower(), None)
     if not task:
         logger.debug('Received an unknown command:"{}{}" from:{}'
                 .format(cmd[:79], ellipsis, msg.personEmail))

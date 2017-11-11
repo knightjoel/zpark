@@ -1023,6 +1023,35 @@ class TaskTestCase(BaseTestCase):
         self.assertFalse(mock_task.called)
 
     @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
+    def test_task_dispatch_spark_command_mixed_case(self, mock_task):
+        """
+        Test the UUT can handle commands that are typed iN mIxED CAse.
+
+        Note this test does NOT check that the command was actually
+        dispatched. There are individual tests that check each command
+        is dispatched properly. This test just checks the stuff that leads
+        up to actual dispatch. However, in order for the UUT to run its
+        course, we mock the task that we expect it to run.
+
+        Expected behavior:
+        - UUT will return True
+        - Spark API 'messages.get' is called once
+        - Spark API 'rooms.get' is called once
+        """
+
+        self.mock_spark_msg_get.return_value = \
+                self.build_fake_webhook_msg_tuple(text='Zpark Show issues')
+        self.mock_spark_rooms_get.return_value = self.build_fake_room_tuple()
+        webhook_data = json.loads(self.build_fake_webhook_json())
+
+        rv = zpark.tasks.task_dispatch_spark_command(webhook_data)
+
+        self.assertTrue(rv)
+        self.mock_spark_msg_get.assert_called_once()
+        self.mock_spark_rooms_get.assert_called_once()
+
+
+    @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
     def test_task_dispatch_spark_command_show_issues(self, mock_task):
         """
         Test dispatching of command "show issues"
