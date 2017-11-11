@@ -14,7 +14,7 @@ if 'ZPARK_SERVER_URL' not in app.config:
     raise ValueError('Please define "ZPARK_SERVER_URL" in app.cfg')
 
 # This _should_ dynamically get the webhook URL via flask
-webhook_url = app.config['ZPARK_SERVER_URL'].rstrip('/') + '/webhook'
+webhook_url = app.config['ZPARK_SERVER_URL'].rstrip('/') + '/api/v1/webhook'
 
 def create_webhook():
     try:
