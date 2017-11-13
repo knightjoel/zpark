@@ -32,7 +32,7 @@ class Alert(Resource):
                 " message:<hidden>"
                 .format(args['to']))
 
-        return api_common.spark_send_alert_message(args['to'],
+        return api_common.send_spark_alert_message(args['to'],
                                                    args['subject'],
                                                    args['message'])
 

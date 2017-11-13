@@ -8,3 +8,5 @@ APP_LOG_MAXBYTES = 1024 * 1024 * 10
 APP_LOG_ROTATECOUNT = 2
 APP_LOG_LOGLEVEL = logging.INFO
 
+CELERY_BROKER_URL = 'ampq://user:pass@hostname/vhost'
+
