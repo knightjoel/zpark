@@ -89,7 +89,11 @@ def task_dispatch_spark_command(self, webhook_data):
         'show issues': (
             task_report_zabbix_active_issues,
             (msg.roomId, room.type, msg.personEmail)
-        )
+        ),
+        'show status': (
+            task_report_zabbix_server_status,
+            (msg.roomId, room.type, msg.personEmail)
+        ),
     }
 
     task = dispatch_map.get(cmd.lower(), None)
@@ -210,6 +214,125 @@ def task_report_zabbix_active_issues(self, roomId, roomType, caller, limit=10):
     try:
         task_send_spark_message(roomId, text, markdown)
         logger.info('Reported active Zabbix issues to room {} (type: {})'
+                .format(roomId, roomType))
+    except SparkApiError as e:
+        msg = "The Spark API returned an error: {}".format(e)
+        logger.error(msg)
+        self.retry(exc=e)
+
+
+@celery_app.task(bind=True, default_retry_delay=15, max_retries=3)
+def task_report_zabbix_server_status(self, roomId, roomType, caller):
+    """
+    Output the Zabbix server status as seen in the web ui dashboard.
+
+    Args:
+        roomId: Identifies the Spark space (room) where the output should be
+            sent. Note the identified room can be either a group room (> 2
+            people) or a 1-on-1 room.
+        roomType: Indicates whether the given roomId is a group or 1-on-1
+            room.
+        caller: A string in the format of an email address that identifies the
+            Spark user that requested this report.
+
+    Returns:
+        None
+
+    Raises:
+        ValueError: The roomType was not one of the expected values.
+        SparkApiError: The Spark API returned an error and
+            despite retrying the API call some number of times, the error
+            persisted. SparkApiError is re-raised to bubble the error
+            down the stack.
+        ZabbixAPIException: The Zabbix server API returned an error and
+            despite retrying the API call some number of times, the error
+            persisted. ZabbixAPIException is re-raised to bubble the error
+            down the stack.
+    """
+
+    if roomType not in ('direct', 'group'):
+        raise ValueError('roomType must be "direct" or "group": '
+                'got: "{}"'.format(roomType))
+
+    stats = {}
+    try:
+        logger.debug('Querying Zabbix server at {} for server status'
+                .format(app.config['ZABBIX_SERVER_URL']))
+
+        stats['enabled_hosts_cnt'] = int(zabbix_api.host.get(
+                countOutput=1,
+                filter={'status':0}))
+        stats['disabled_hosts_cnt'] = int(zabbix_api.host.get(
+                countOutput=1,
+                filter={'status':1}))
+        stats['templates_cnt'] = int(zabbix_api.template.get(countOutput=1))
+        # The dashboard actually shows items that are enabled, supported and
+        # associated with monitored hosts.
+        stats['enabled_items_cnt'] = int(zabbix_api.item.get(
+                countOutput=1,
+                monitored=1,
+                filter={'status':0, 'state':0}))
+        # The dashboard actually shows items that are disabled, supported
+        # or not supported, and that are not associated to templates.
+        stats['disabled_items_cnt'] = int(zabbix_api.item.get(
+                countOutput=1,
+                templated=0,
+                filter={'status':1}))
+        # The dashboard actually shows items that are enabled and associated
+        # with monitored hosts.
+        stats['notsupported_items_cnt'] = int(zabbix_api.item.get(
+                countOutput=1,
+                monitored=1,
+                filter={'state':1}))
+        # The dashboard actually shows triggers that are enabled and
+        # associated with monitored hosts.
+        stats['enabled_triggers_cnt'] = int(zabbix_api.trigger.get(
+                countOutput=1,
+                monitored=1,
+                filter={'status':0}))
+        # The dashboard actually shows triggers that are disabled and
+        # are "plain" (non discovered) triggers.
+        stats['disabled_triggers_cnt'] = int(zabbix_api.trigger.get(
+                countOutput=1,
+                filter={'status':1, 'flags':0}))
+        # The dashboard actually shows triggers that are enabled and
+        # associated with monitored hosts.
+        stats['ok_triggers_cnt'] = int(zabbix_api.trigger.get(
+                countOutput=1,
+                monitored=1,
+                filter={'status':0, 'value':0}))
+        # The dashboard actually shows triggers that are enabled and
+        # associated with monitored hosts.
+        stats['problem_triggers_cnt'] = int(zabbix_api.trigger.get(
+                countOutput=1,
+                monitored=1,
+                filter={'status':0, 'value':1}))
+        stats['enabled_httptest_cnt'] = int(zabbix_api.httptest.get(
+                countOutput=1,
+                monitored=1))
+        stats['disabled_httptest_cnt'] = int(zabbix_api.httptest.get(
+                countOutput=1,
+                filter={'status':1}))
+
+        logger.debug('Retrieved server stats from Zabbix')
+    except ZabbixAPIException as e:
+        notify_of_failed_command(roomId, roomType, caller,
+                                 self.request.retries, self.max_retries, e)
+        self.retry(exc=e)
+
+    text = jinja2.get_template('report_zabbix_server_status.txt').render(
+            stats=stats,
+            caller=caller,
+            roomId=roomId,
+            roomType=roomType)
+    markdown = jinja2.get_template('report_zabbix_server_status.md').render(
+            stats=stats,
+            caller=caller,
+            roomid=roomId,
+            roomtype=roomType)
+    try:
+        task_send_spark_message(roomId, text, markdown)
+        logger.info('Reported Zabbix server stats to room {} (type: {})'
                 .format(roomId, roomType))
     except SparkApiError as e:
         msg = "The Spark API returned an error: {}".format(e)

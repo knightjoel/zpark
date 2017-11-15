@@ -1072,6 +1072,28 @@ class TaskTestCase(BaseTestCase):
             self.mock_spark_rooms_get.return_value.type,
             self.mock_spark_msg_get.return_value.personEmail))
 
+
+    @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
+    def test_task_dispatch_spark_command_show_status(self, mock_task):
+        """
+        Test dispatching of command "show status"
+
+        Expected behavior:
+        - The appropriate task is fired asynchronously
+        """
+
+        self.mock_spark_msg_get.return_value = \
+                self.build_fake_webhook_msg_tuple(text='Zpark show issues')
+        self.mock_spark_rooms_get.return_value = self.build_fake_room_tuple()
+        webhook_data = json.loads(self.build_fake_webhook_json())
+
+        zpark.tasks.task_dispatch_spark_command(webhook_data)
+
+        mock_task.assert_called_once_with(args=(
+            self.mock_spark_rooms_get.return_value.id,
+            self.mock_spark_rooms_get.return_value.type,
+            self.mock_spark_msg_get.return_value.personEmail))
+
     @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
     def test_task_dispatch_spark_command_direct(self, mock_task):
         """
