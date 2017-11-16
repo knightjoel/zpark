@@ -1,5 +1,5 @@
-{% if roomtype == 'group' %}
-Hey there <@personEmail:{{ caller }}>,
+{% if room.type == 'group' %}
+Hey there <@personEmail:{{ caller.emails[0] }}|{{ caller.nickName }}>,
 {% endif %}
 
 Zabbix server status:
