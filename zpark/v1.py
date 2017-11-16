@@ -1,3 +1,7 @@
+import hashlib
+import hmac
+import json
+
 from flask import Blueprint, request
 from flask_restful import Api, Resource, reqparse
 
@@ -47,10 +51,87 @@ class Ping(Resource):
 class Webhook(Resource):
 
     def post(self):
+        """
+        Process incoming webhook callbacks from the Spark service.
+
+        Authentication of the incoming callback will be done when the
+        flask 'SPARK_WEBHOOK_SECRET' config parameter is set. A callback
+        is successfully authenticated under these conditions:
+
+            - The X-Spark-Signature header is present, and
+            - The value in the header matches our computed SHA1 HMAC of
+                the request body.
+
+        If the callback is successfully authenticated, the JSON in the
+        callback is passed to a handler routine which takes care of the
+        actual request.
+
+        Args:
+            - None
+
+        Returns:
+            - A two-element set containing:
+                - A dict which provides some context about how the request
+                    was processed.
+                - An int which is used as the HTTP status code.
+        """
+
+        # Safety third. As recommended in the docs, prior to calling
+        # request.get_data(), validate the size of the data is within
+        # reason.
+        cl = request.headers.get('Content-Length', None)
+        try:
+            cl = int(cl)
+        except ValueError:
+            return (
+                {'error': 'Bad request'},
+                400
+            )
+        if cl and cl > app.config['MAX_CONTENT_LENGTH']:
+                return (
+                    {'error': 'Too big'},
+                    413
+                )
+
+        sparkhmac = request.headers.get('X-Spark-Signature', None)
         reqjson = request.get_json()
+
+        whid = reqjson.get('id', '<Unknown>')
+        whname = reqjson.get('name', '<Unknown>')
+
+        if 'SPARK_WEBHOOK_SECRET' in app.config:
+            if sparkhmac is None:
+                app.logger.warning("API: webhook: Unauthorized webhook"
+                        " callback received: no X-Spark-Signature header."
+                        " Verify the callback has a configured secret."
+                        " id:{} name:\"{}\""
+                        .format(whid, whname))
+                return (
+                    {'error': 'Unauthorized'},
+                    403
+                )
+
+            ourhmac = hmac.new(bytes(app.config['SPARK_WEBHOOK_SECRET'],
+                                   'utf-8'),
+                               msg=request.get_data(),
+                               digestmod=hashlib.sha1).hexdigest()
+
+            if hmac.compare_digest(ourhmac, sparkhmac) is False:
+                app.logger.warning("API: webhook: Unauthorized webhook"
+                        " callback received: HMACs do not match."
+                        " Verify proper setting of 'SPARK_WEBHOOK_SECRET'."
+                        " id:{} name:\"{}\""
+                        .format(whid, whname))
+                app.logger.debug("API: webhook: Spark's HMAC: {}"
+                        " / Our computed HMAC: {}"
+                        .format(sparkhmac, ourhmac))
+                return (
+                    {'error': 'Unauthorized'},
+                    403
+                )
+
         app.logger.info("API: webhook callback received: id:{} name:\"{}\""
-                .format(reqjson.get('id', '<Unknown>'),
-                        reqjson.get('name', '<Unknown>')))
+                .format(whid, whname))
 
         return api_common.handle_spark_webhook(reqjson)
 

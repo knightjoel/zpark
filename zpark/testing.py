@@ -20,6 +20,11 @@ class BaseTestCase(TestCase):
             TESTING = True,
             ZPARK_API_TOKEN = 'token12345'
         )
+        # Disable webhook authentication for testing
+        try:
+            del zpark.app.config['SPARK_WEBHOOK_SECRET']
+        except KeyError:
+            pass
         return zpark.app
 
     def setUp(self):
@@ -261,6 +266,184 @@ class ApiV1TestCase(ApiTestCase):
         mock_apicommon.assert_called_once_with(
                 json.loads(json_input))
 
+    @patch('zpark.v1.hmac.HMAC.hexdigest')
+    @patch('zpark.api_common.handle_spark_webhook')
+    def test_webhook_post_with_auth(self, mock_apicommon, mock_digest):
+        """
+        Test UUT without any contrived failure conditions and with
+        authentication of the incoming request.
+
+        Expected results:
+        - UUT returns HTTP 200 status code
+        - UUT calls api_common.handle_spark_webhook once with the UUT input
+            JSON as a dict.
+        """
+
+        json_input = self.build_fake_webhook_json()
+        mock_apicommon.return_value = ('{}', 200)
+        mock_digest.return_value = 'thisismydigest'
+
+        zpark.app.config['SPARK_WEBHOOK_SECRET'] = 'thisismysecret'
+
+        r = self.client.post(url_for('api_v1.webhook'),
+                             data=json_input,
+                             content_type='application/json',
+                             headers={'X-Spark-Signature': 'thisismydigest'})
+        self.assert_200(r)
+        mock_apicommon.assert_called_once_with(
+                json.loads(json_input))
+
+        del zpark.app.config['SPARK_WEBHOOK_SECRET']
+
+    @patch('zpark.v1.hmac.HMAC.hexdigest')
+    @patch('zpark.api_common.handle_spark_webhook')
+    def test_webhook_post_with_missing_sig_header(self, mock_apicommon,
+                                                  mock_digest):
+        """
+        Test UUT with authentication enabled, but no X-Spark-Signature
+        header in the POST request.
+
+        Expected results:
+        - UUT returns HTTP 403 status code
+        - UUT does not call api_common.handle_spark_webhook
+        """
+
+        json_input = self.build_fake_webhook_json()
+        mock_apicommon.return_value = ('{}', 200)
+        mock_digest.return_value = 'thisismydigest'
+
+        zpark.app.config['SPARK_WEBHOOK_SECRET'] = 'thisismysecret'
+
+        # Do not set the X-Spark-Signature header
+        r = self.client.post(url_for('api_v1.webhook'),
+                             data=json_input,
+                             content_type='application/json')
+        self.assert_403(r)
+        self.assertFalse(mock_apicommon.called)
+
+        del zpark.app.config['SPARK_WEBHOOK_SECRET']
+
+    @patch('zpark.v1.hmac.HMAC.hexdigest')
+    @patch('zpark.api_common.handle_spark_webhook')
+    def test_webhook_post_digest_mismatch(self, mock_apicommon, mock_digest):
+        """
+        Test UUT with authentication enabled, but a mismatch in digests.
+
+        Expected results:
+        - UUT returns HTTP 403 status code
+        - UUT does not call api_common.handle_spark_webhook
+        """
+
+        json_input = self.build_fake_webhook_json()
+        mock_apicommon.return_value = ('{}', 200)
+        mock_digest.return_value = 'thisismydigest'
+
+        zpark.app.config['SPARK_WEBHOOK_SECRET'] = 'thisismysecret'
+
+        r = self.client.post(url_for('api_v1.webhook'),
+                             data=json_input,
+                             content_type='application/json',
+                             headers={'X-Spark-Signature': 'sparkdigest'})
+        self.assert_403(r)
+        self.assertFalse(mock_apicommon.called)
+
+        del zpark.app.config['SPARK_WEBHOOK_SECRET']
+
+    @patch('zpark.api_common.handle_spark_webhook')
+    def test_webhook_post_massive_content_length(self, mock_apicommon):
+        """
+        Test UUT with an artificially large content-length.
+
+        Expected results:
+        - UUT returns HTTP 413 status code
+        - UUT does not call api_common.handle_spark_webhook
+        """
+
+        cl = 1024 * 1024 * 5
+
+        json_input = self.build_fake_webhook_json()
+        mock_apicommon.return_value = ('{}', 200)
+
+        r = self.client.post(url_for('api_v1.webhook'),
+                             # Werkzerg test client won't pass our
+                             # content-length if we also pass some data >:|
+                             #data=json_input,
+                             content_type='application/json',
+                             content_length=cl,
+                             headers={'X-Spark-Signature': 'thisismydigest'})
+        self.assert_status(r, 413)
+        self.assertFalse(mock_apicommon.called)
+
+    @patch('zpark.api_common.handle_spark_webhook')
+    def test_webhook_post_empty_content_length(self, mock_apicommon):
+        """
+        Test UUT with an empty content-length header.
+
+        Expected results:
+        - UUT returns HTTP 400 status code
+        - UUT does not call api_common.handle_spark_webhook
+        """
+
+        json_input = self.build_fake_webhook_json()
+        mock_apicommon.return_value = ('{}', 200)
+
+        r = self.client.post(url_for('api_v1.webhook'),
+                             # Werkzerg test client won't pass our
+                             # content-length if we also pass some data >:|
+                             #data=json_input,
+                             content_type='application/json',
+                             content_length='',
+                             headers={'X-Spark-Signature': 'thisismydigest'})
+        self.assert_status(r, 400)
+        self.assertFalse(mock_apicommon.called)
+
+    @patch('zpark.api_common.handle_spark_webhook')
+    def test_webhook_post_non_numeric_content_length(self, mock_apicommon):
+        """
+        Test UUT with non-numeric content-length header (imitating a
+        potentially malicious user poking around).
+
+        Expected results:
+        - UUT returns HTTP 400 status code
+        - UUT does not call api_common.handle_spark_webhook
+        """
+
+        json_input = self.build_fake_webhook_json()
+        mock_apicommon.return_value = ('{}', 200)
+
+        r = self.client.post(url_for('api_v1.webhook'),
+                             # Werkzerg test client won't pass our
+                             # content-length if we also pass some data >:|
+                             #data=json_input,
+                             content_type='application/json',
+                             content_length='zpark',
+                             headers={'X-Spark-Signature': 'thisismydigest'})
+        self.assert_status(r, 400)
+        self.assertFalse(mock_apicommon.called)
+
+    @patch('zpark.api_common.handle_spark_webhook')
+    def test_webhook_post_missing_content_length(self, mock_apicommon):
+        """
+        Test UUT with a missing content-length header (imitating a
+        potentially malicious user poking around).
+
+        Expected results:
+        - UUT returns HTTP 400 status code
+        - UUT does not call api_common.handle_spark_webhook
+        """
+
+        json_input = self.build_fake_webhook_json()
+        mock_apicommon.return_value = ('{}', 200)
+
+        r = self.client.post(url_for('api_v1.webhook'),
+                             # Werkzerg test client won't pass our
+                             # content-length if we also pass some data >:|
+                             #data=json_input,
+                             content_type='application/json',
+                             content_length=None,
+                             headers={'X-Spark-Signature': 'thisismydigest'})
+        self.assert_status(r, 400)
+        self.assertFalse(mock_apicommon.called)
 
     ### GET /webhook endpoint
     def test_webhook_get(self):

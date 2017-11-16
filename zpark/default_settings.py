@@ -15,3 +15,6 @@ ZABBIX_USERNAME = 'username'
 ZABBIX_PASSWORD = 'password'
 
 #ZPARK_SERVER_URL = 'https://your.spark.bot.url'
+
+MAX_CONTENT_LENGTH = 1024 * 32
+
