@@ -863,8 +863,8 @@ class TaskTestCase(BaseTestCase):
 
         return my_spark_reply
 
-    def test_task_send_spark_message(self):
-        to = u'joel@zpark.packetmischief'
+    def test_task_send_spark_message_direct(self):
+        to = obj_to_dict(self.build_fake_person_tuple())
         message = u'Your data center is on fire'
 
         spark_api_reply = self.build_spark_api_reply(toPersonEmail=to,
@@ -873,14 +873,30 @@ class TaskTestCase(BaseTestCase):
 
         self.assertEqual(spark_api_reply.id,
                          zpark.tasks.task_send_spark_message(to, message))
+        self.mock_spark_msg_create.assert_called_once_with(
+                toPersonEmail=to['emails'][0], text=message)
+
+    def test_task_send_spark_message_group(self):
+        to = obj_to_dict(self.build_fake_room_tuple())
+        message = u'Your data center is on fire'
+
+        spark_api_reply = self.build_spark_api_reply(toPersonEmail=to,
+                                                     text=message)
+        self.mock_spark_msg_create.return_value = spark_api_reply
+
+        self.assertEqual(spark_api_reply.id,
+                         zpark.tasks.task_send_spark_message(to, message))
+        self.mock_spark_msg_create.assert_called_once_with(
+                roomId=to['id'], text=message)
 
     def test_task_send_spark_message_retry(self):
-        to = u'joel@zpark.packetmischief'
+        to = obj_to_dict(self.build_fake_person_tuple())
         message = u'Your data center is on fire'
 
         e = SparkApiError(409)
 
-        self.mock_spark_msg_create.side_effect = [e, self.build_spark_api_reply()]
+        self.mock_spark_msg_create.side_effect = [e,
+                                                  self.build_spark_api_reply()]
         mock_retry = patch('zpark.tasks.task_send_spark_message.retry',
                            autospec=True)
         mock_retry_patcher = mock_retry.start()

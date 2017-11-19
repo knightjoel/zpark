@@ -123,12 +123,34 @@ def task_dispatch_spark_command(self, webhook_data):
 
 @celery_app.task(bind=True, default_retry_delay=20, max_retries=3)
 def task_send_spark_message(self, to, text, md=None):
-    # crude but good enough to tell the difference between roomId and
-    # toPersonEmail inputs. this logic fails if we're passed a personId.
-    if '@' in to:
-        msg = dict(toPersonEmail=to)
+    """
+    Send a message to a Spark destination: either a room or a person.
+
+    The function does a little introspection on the 'to' argument to
+    determine if the intended recipient is a person or a room. It then
+    forms the proper data structure to pass to the Spark API.
+
+    Args:
+        - to (dict): Represents either the person or the room that the
+            message will be send to. Must contain keys which would normally
+            be expected in a ciscosparkapi.Person or ciscosparkapi.Room
+            object.
+        - text (str): The text of the message to send.
+        - md (str): The message to be sent with markup formatting.
+
+    Returns:
+        - None
+
+    Raises:
+        SparkApiError: The Spark API returned an error and
+            despite retrying the API call some number of times, the error
+            persisted. SparkApiError is re-raised to bubble the error
+            down the stack.
+    """
+    if 'emails' in to:
+        msg = dict(toPersonEmail=to['emails'][0])
     else:
-        msg = dict(roomId=to)
+        msg = dict(roomId=to['id'])
 
     msg.update(text=text)
 
@@ -445,7 +467,7 @@ def notify_of_failed_command(room, caller, retries, max_retries,
                 room=room,
                 retries=retries)
         try:
-            task_send_spark_message.apply(args=(room['id'], text, markdown))
+            task_send_spark_message.apply(args=(room, text, markdown))
             logger.info('Notified room {} (type: {}) that a command'
                         ' could not be answered'
                     .format(room['id'], room['type']))
