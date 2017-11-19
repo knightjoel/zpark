@@ -10,6 +10,7 @@ from flask_testing import TestCase
 from pyzabbix import ZabbixAPIException
 
 import zpark
+from zpark.utils import obj_to_dict
 
 
 class BaseTestCase(TestCase):
@@ -916,8 +917,8 @@ class TaskTestCase(BaseTestCase):
             }]
 
         self.mock_zabbixapi.return_value = zabbix_api_reply
-        room = self.build_fake_room_tuple()
-        caller = self.build_fake_person_tuple()
+        room = obj_to_dict(self.build_fake_room_tuple())
+        caller = obj_to_dict(self.build_fake_person_tuple())
 
         rv = zpark.tasks.task_report_zabbix_active_issues(room, caller)
 
@@ -950,8 +951,8 @@ class TaskTestCase(BaseTestCase):
             return []
 
         self.mock_zabbixapi.return_value = zabbix_api_reply
-        room = self.build_fake_room_tuple()
-        caller = self.build_fake_person_tuple()
+        room = obj_to_dict(self.build_fake_room_tuple())
+        caller = obj_to_dict(self.build_fake_person_tuple())
 
         zpark.tasks.task_report_zabbix_active_issues(room, caller)
 
@@ -1081,8 +1082,8 @@ class TaskTestCase(BaseTestCase):
         - notify_of_failed_command() returns None
         """
         self.mock_spark_msg_create.return_value = self.build_spark_api_reply()
-        room = self.build_fake_room_tuple()
-        caller = self.build_fake_person_tuple()
+        room = obj_to_dict(self.build_fake_room_tuple())
+        caller = obj_to_dict(self.build_fake_person_tuple())
 
         rv = zpark.tasks.notify_of_failed_command(room,
                                                   caller,
@@ -1157,8 +1158,8 @@ class TaskTestCase(BaseTestCase):
         """
         mock_sendmsg.side_effect = SparkApiError(409)
 
-        room = self.build_fake_room_tuple()
-        caller = self.build_fake_person_tuple()
+        room = obj_to_dict(self.build_fake_room_tuple())
+        caller = obj_to_dict(self.build_fake_person_tuple())
 
         with self.assertRaises(SparkApiError):
             zpark.tasks.notify_of_failed_command(room,
@@ -1265,8 +1266,8 @@ class TaskTestCase(BaseTestCase):
         zpark.tasks.task_dispatch_spark_command(webhook_data)
 
         mock_task.assert_called_once_with(args=(
-            self.mock_spark_rooms_get.return_value,
-            self.mock_spark_people_get.return_value))
+            obj_to_dict(self.mock_spark_rooms_get.return_value),
+            obj_to_dict(self.mock_spark_people_get.return_value)))
 
 
     @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
@@ -1288,8 +1289,8 @@ class TaskTestCase(BaseTestCase):
         zpark.tasks.task_dispatch_spark_command(webhook_data)
 
         mock_task.assert_called_once_with(args=(
-            self.mock_spark_rooms_get.return_value,
-            self.mock_spark_people_get.return_value))
+            obj_to_dict(self.mock_spark_rooms_get.return_value),
+            obj_to_dict(self.mock_spark_people_get.return_value)))
 
     @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
     def test_task_dispatch_spark_command_direct(self, mock_task):
@@ -1317,8 +1318,8 @@ class TaskTestCase(BaseTestCase):
 
         self.assertTrue(rv)
         mock_task.assert_called_once_with(args=(
-            self.mock_spark_rooms_get.return_value,
-            self.mock_spark_people_get.return_value))
+            obj_to_dict(self.mock_spark_rooms_get.return_value),
+            obj_to_dict(self.mock_spark_people_get.return_value)))
 
     @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
     def test_task_dispatch_spark_command_group(self, mock_task):
@@ -1346,8 +1347,8 @@ class TaskTestCase(BaseTestCase):
 
         self.assertTrue(rv)
         mock_task.assert_called_once_with(args=(
-            self.mock_spark_rooms_get.return_value,
-            self.mock_spark_people_get.return_value))
+            obj_to_dict(self.mock_spark_rooms_get.return_value),
+            obj_to_dict(self.mock_spark_people_get.return_value)))
 
     def test_task_dispatch_spark_command_spark_fail_msg(self):
         """

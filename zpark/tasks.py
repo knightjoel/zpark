@@ -10,6 +10,7 @@ from pyzabbix import ZabbixAPIException
 
 from zpark import app, basedir, jinja2, spark_api, zabbix_api
 from zpark import celery as celery_app
+from zpark.utils import obj_to_dict
 
 
 __all__ = [
@@ -94,14 +95,17 @@ def task_dispatch_spark_command(self, webhook_data):
     if room.type == 'group':
         cmd = re.split('[^a-zA-Z0-9]+', cmd, 1)[1]
 
+    room_dict = obj_to_dict(room)
+    caller_dict = obj_to_dict(caller)
+
     dispatch_map = {
         'show issues': (
             task_report_zabbix_active_issues,
-            (room, caller)
+            (room_dict, caller_dict)
         ),
         'show status': (
             task_report_zabbix_server_status,
-            (room, caller)
+            (room_dict, caller_dict)
         ),
     }
 
@@ -150,12 +154,11 @@ def task_report_zabbix_active_issues(self, room, caller, limit=10):
     Output a list of active Zabbix issues to a Spark space.
 
     Args:
-        room: A ciscosparkapi.Room object that identifies the Spark space
-            (room) where the output should be sent. Note the
-            identified room can be either a group room (> 2 people) or a
-            1-on-1 room.
-        caller: A ciscosparkapi.Person object that identifies the
-            Spark user that requested this report.
+        room: A dict that identifies the Spark space (room) where the output
+            should be sent. Note the identified room can be either a group
+            room (> 2 people) or a 1-on-1 room.
+        caller: A dict that identifies the Spark user that requested this
+            report.
         limit: The maximum number of issues to include in the output.
 
     Returns:
@@ -215,7 +218,7 @@ def task_report_zabbix_active_issues(self, room, caller, limit=10):
     try:
         task_send_spark_message(room, text, markdown)
         logger.info('Reported active Zabbix issues to room {} (type: {})'
-                .format(room.id, room.type))
+                .format(room['id'], room['type']))
     except SparkApiError as e:
         msg = "The Spark API returned an error: {}".format(e)
         logger.error(msg)
@@ -228,12 +231,11 @@ def task_report_zabbix_server_status(self, room, caller):
     Output the Zabbix server status as seen in the web ui dashboard.
 
     Args:
-        room: A ciscosparkapi.Room object that identifies the Spark space
-            (room) where the output should be sent. Note the
-            identified room can be either a group room (> 2 people) or a
-            1-on-1 room.
-        caller: A ciscosparkapi.Person object that identifies the
-            Spark user that requested this report.
+        room: A dict that identifies the Spark space (room) where the output
+            should be sent. Note the identified room can be either a group
+            room (> 2 people) or a 1-on-1 room.
+        caller: A dict that identifies the Spark user that requested this
+            report.
 
     Returns:
         None
@@ -326,7 +328,7 @@ def task_report_zabbix_server_status(self, room, caller):
     try:
         task_send_spark_message(room, text, markdown)
         logger.info('Reported Zabbix server stats to room {} (type: {})'
-                .format(room.id, room.type))
+                .format(room['id'], room['type']))
     except SparkApiError as e:
         msg = "The Spark API returned an error: {}".format(e)
         logger.error(msg)
@@ -409,12 +411,11 @@ def notify_of_failed_command(room, caller, retries, max_retries,
     not on each retry attempt of the calling task.
 
     Args:
-        room: A ciscosparkapi.Room object that identifies the Spark space
-            (room) where the output should be sent. Note the
-            identified room can be either a group room (> 2 people) or a
-            1-on-1 room.
-        caller: A ciscosparkapi.Person object that identifies the
-            Spark user that requested this report.
+        room: A dict that identifies the Spark space (room) where the output
+            should be sent. Note the identified room can be either a group
+            room (> 2 people) or a 1-on-1 room.
+        caller: A dict that identifies the Spark user that requested this
+            report.
         retries: An integer indicating the number of retry attempts that the
             calling task has already attempted (ie, does not include the
             current try).
@@ -444,15 +445,15 @@ def notify_of_failed_command(room, caller, retries, max_retries,
                 room=room,
                 retries=retries)
         try:
-            task_send_spark_message.apply(args=(room.id, text, markdown))
+            task_send_spark_message.apply(args=(room['id'], text, markdown))
             logger.info('Notified room {} (type: {}) that a command'
                         ' could not be answered'
-                    .format(room.id, room.type))
+                    .format(room['id'], room['type']))
         except SparkApiError as e:
             logger.error('Unable to notify room {} (type: {}) that a'
                          ' command could not be answered:'
                          ' Spark API Error: {}'
-                    .format(room.id, room.type, e))
+                    .format(room['id'], room['type'], e))
             raise
     elif retries > max_retries:
         # Since this is an unintuitively valid condition in which this
