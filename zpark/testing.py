@@ -10,6 +10,7 @@ from flask_testing import TestCase
 from pyzabbix import ZabbixAPIException
 
 import zpark
+from zpark.utils import obj_to_dict
 
 
 class BaseTestCase(TestCase):
@@ -82,6 +83,17 @@ class BaseTestCase(TestCase):
             type=roomType or 'group'
         )
         return room
+
+    def build_fake_person_tuple(self):
+        t = namedtuple('person', 'id name emails displayName nickName')
+        person = t(
+            id='personid12345',
+            name='Charlie Root',
+            emails=['croot@unix'],
+            displayName='Charlie Root',
+            nickName='Charlie'
+        )
+        return person
 
     def set_spark_trusted_user(self, personEmail):
         if not 'SPARK_TRUSTED_USERS' in zpark.app.config:
@@ -800,6 +812,10 @@ class ApiCommonTestCase(ApiTestCase):
 class TaskTestCase(BaseTestCase):
 
     def setUp(self):
+        self.mock_spark_people_get_patcher = \
+                patch('zpark.spark_api.people.get', autospec=True)
+        self.mock_spark_people_get = self.mock_spark_people_get_patcher.start()
+
         self.mock_spark_msg_create_patcher = \
                 patch('zpark.spark_api.messages.create', autospec=True)
         self.mock_spark_msg_create = self.mock_spark_msg_create_patcher.start()
@@ -825,6 +841,7 @@ class TaskTestCase(BaseTestCase):
                                 format=fmt)
 
     def tearDown(self):
+        self.mock_spark_people_get_patcher.stop()
         self.mock_spark_msg_create_patcher.stop()
         self.mock_spark_msg_get_patcher.stop()
         self.mock_spark_rooms_get_patcher.stop()
@@ -846,8 +863,8 @@ class TaskTestCase(BaseTestCase):
 
         return my_spark_reply
 
-    def test_task_send_spark_message(self):
-        to = u'joel@zpark.packetmischief'
+    def test_task_send_spark_message_direct(self):
+        to = obj_to_dict(self.build_fake_person_tuple())
         message = u'Your data center is on fire'
 
         spark_api_reply = self.build_spark_api_reply(toPersonEmail=to,
@@ -856,14 +873,30 @@ class TaskTestCase(BaseTestCase):
 
         self.assertEqual(spark_api_reply.id,
                          zpark.tasks.task_send_spark_message(to, message))
+        self.mock_spark_msg_create.assert_called_once_with(
+                toPersonEmail=to['emails'][0], text=message)
+
+    def test_task_send_spark_message_group(self):
+        to = obj_to_dict(self.build_fake_room_tuple())
+        message = u'Your data center is on fire'
+
+        spark_api_reply = self.build_spark_api_reply(toPersonEmail=to,
+                                                     text=message)
+        self.mock_spark_msg_create.return_value = spark_api_reply
+
+        self.assertEqual(spark_api_reply.id,
+                         zpark.tasks.task_send_spark_message(to, message))
+        self.mock_spark_msg_create.assert_called_once_with(
+                roomId=to['id'], text=message)
 
     def test_task_send_spark_message_retry(self):
-        to = u'joel@zpark.packetmischief'
+        to = obj_to_dict(self.build_fake_person_tuple())
         message = u'Your data center is on fire'
 
         e = SparkApiError(409)
 
-        self.mock_spark_msg_create.side_effect = [e, self.build_spark_api_reply()]
+        self.mock_spark_msg_create.side_effect = [e,
+                                                  self.build_spark_api_reply()]
         mock_retry = patch('zpark.tasks.task_send_spark_message.retry',
                            autospec=True)
         mock_retry_patcher = mock_retry.start()
@@ -900,18 +933,17 @@ class TaskTestCase(BaseTestCase):
             }]
 
         self.mock_zabbixapi.return_value = zabbix_api_reply
+        room = obj_to_dict(self.build_fake_room_tuple())
+        caller = obj_to_dict(self.build_fake_person_tuple())
 
-        rv = zpark.tasks.task_report_zabbix_active_issues(
-                'roomid123abc',
-                'direct',
-                'joel@zpark.packetmischief')
+        rv = zpark.tasks.task_report_zabbix_active_issues(room, caller)
 
         self.mock_zabbixapi.assert_called_once()
         mock_sendmsg.assert_called_once()
         for call in mock_sendmsg.call_args_list:
             args, kwargs = call
-            # arg0 is roomId
-            self.assertEqual('roomid123abc', args[0])
+            # arg0 is the room object
+            self.assertEqual(room, args[0])
             # arg1 is the text
             self.assertIn('host.packetmischief', args[1])
             # arg2 is the markdown
@@ -935,18 +967,17 @@ class TaskTestCase(BaseTestCase):
             return []
 
         self.mock_zabbixapi.return_value = zabbix_api_reply
+        room = obj_to_dict(self.build_fake_room_tuple())
+        caller = obj_to_dict(self.build_fake_person_tuple())
 
-        zpark.tasks.task_report_zabbix_active_issues(
-                'roomid123abc',
-                'direct',
-                'joel@zpark.packetmischief')
+        zpark.tasks.task_report_zabbix_active_issues(room, caller)
 
         self.mock_zabbixapi.assert_called_once()
         mock_sendmsg.assert_called_once()
         for call in mock_sendmsg.call_args_list:
             args, kwargs = call
-            # arg0 is roomId
-            self.assertEqual('roomid123abc', args[0])
+            # arg0 is the room object
+            self.assertEqual(room, args[0])
             # arg1 is the text
             self.assertIn('no active issues', args[1])
             # arg2 is the markdown
@@ -970,11 +1001,13 @@ class TaskTestCase(BaseTestCase):
         """
         self.mock_zabbixapi.side_effect = ZabbixAPIException('error')
 
+        room = self.build_fake_room_tuple()
+        caller = self.build_fake_person_tuple()
+
         with self.assertRaises(ZabbixAPIException):
             zpark.tasks.task_report_zabbix_active_issues(
-                    'roomid123abc',
-                    'direct',
-                    'joel@zpark.packetmischief')
+                    room,
+                    caller)
 
         self.mock_zabbixapi.assert_called_once()
         mock_notify.assert_called_once()
@@ -996,9 +1029,9 @@ class TaskTestCase(BaseTestCase):
         - Zabbix API (mock) is called once
         - notify_of_failed_command() (mock) should be called once
         """
-        report_args = ('roomid123abc',
-                       'direct',
-                       'joel@zpark.packetmischief')
+
+        room = self.build_fake_room_tuple()
+        caller = self.build_fake_person_tuple()
 
         e = ZabbixAPIException('error')
         self.mock_zabbixapi.side_effect = [e, None]
@@ -1009,7 +1042,7 @@ class TaskTestCase(BaseTestCase):
         mock_retry_patcher.side_effect = Retry
 
         with self.assertRaises(Retry):
-            zpark.tasks.task_report_zabbix_active_issues(*report_args)
+            zpark.tasks.task_report_zabbix_active_issues(room, caller)
 
         mock_retry_patcher.assert_called_with(exc=e)
         self.mock_zabbixapi.assert_called_once()
@@ -1054,15 +1087,6 @@ class TaskTestCase(BaseTestCase):
 
         mock_retry.stop()
 
-    def test_task_report_zabbix_active_issues_bad_roomtype(self):
-        # 2nd argument is the roomtype. valid values are 'direct' and 'group'.
-        # anything else throws ValueError.
-        with self.assertRaises(ValueError):
-            zpark.tasks.task_report_zabbix_active_issues(
-                    'id123abc',
-                    'party',
-                    'joel@zpark.packetmischief')
-
     def test_notify_of_failed_command_first_try(self):
         """
         Attempt notification that a bot command could not be answered right
@@ -1074,10 +1098,11 @@ class TaskTestCase(BaseTestCase):
         - notify_of_failed_command() returns None
         """
         self.mock_spark_msg_create.return_value = self.build_spark_api_reply()
+        room = obj_to_dict(self.build_fake_room_tuple())
+        caller = obj_to_dict(self.build_fake_person_tuple())
 
-        rv = zpark.tasks.notify_of_failed_command('roomId1234',
-                                                  'direct',
-                                                  'joel@zpark.packetmischief',
+        rv = zpark.tasks.notify_of_failed_command(room,
+                                                  caller,
                                                   0, # retries
                                                   3, # max_retries
                                                   'OhShootException')
@@ -1098,10 +1123,11 @@ class TaskTestCase(BaseTestCase):
         - notify_of_failed_command() returns None
         """
         self.mock_spark_msg_create.return_value = self.build_spark_api_reply()
+        room = self.build_fake_room_tuple()
+        caller = self.build_fake_person_tuple()
 
-        rv = zpark.tasks.notify_of_failed_command('roomId1234',
-                                                  'direct',
-                                                  'joel@zpark.packetmischief',
+        rv = zpark.tasks.notify_of_failed_command(room,
+                                                  caller,
                                                   1, # retries
                                                   3, # max_retries
                                                   'OhShootException')
@@ -1122,10 +1148,11 @@ class TaskTestCase(BaseTestCase):
         - notify_of_failed_command() returns None
         """
         self.mock_spark_msg_create.return_value = self.build_spark_api_reply()
+        room = self.build_fake_room_tuple()
+        caller = self.build_fake_person_tuple()
 
-        rv = zpark.tasks.notify_of_failed_command('roomId1234',
-                                                  'direct',
-                                                  'joel@zpark.packetmischief',
+        rv = zpark.tasks.notify_of_failed_command(room,
+                                                  caller,
                                                   3, # retries
                                                   3, # max_retries
                                                   'OhShootException')
@@ -1147,10 +1174,12 @@ class TaskTestCase(BaseTestCase):
         """
         mock_sendmsg.side_effect = SparkApiError(409)
 
+        room = obj_to_dict(self.build_fake_room_tuple())
+        caller = obj_to_dict(self.build_fake_person_tuple())
+
         with self.assertRaises(SparkApiError):
-            zpark.tasks.notify_of_failed_command('roomId1234',
-                                                 'direct',
-                                                 'joel@zpark.packetmischief',
+            zpark.tasks.notify_of_failed_command(room,
+                                                 caller,
                                                  0, # retries
                                                  3, # max_retries
                                                  'OhShootException')
@@ -1243,6 +1272,8 @@ class TaskTestCase(BaseTestCase):
         - The appropriate task is fired asynchronously
         """
 
+        self.mock_spark_people_get.return_value = \
+                self.build_fake_person_tuple()
         self.mock_spark_msg_get.return_value = \
                 self.build_fake_webhook_msg_tuple()
         self.mock_spark_rooms_get.return_value = self.build_fake_room_tuple()
@@ -1251,9 +1282,8 @@ class TaskTestCase(BaseTestCase):
         zpark.tasks.task_dispatch_spark_command(webhook_data)
 
         mock_task.assert_called_once_with(args=(
-            self.mock_spark_rooms_get.return_value.id,
-            self.mock_spark_rooms_get.return_value.type,
-            self.mock_spark_msg_get.return_value.personEmail))
+            obj_to_dict(self.mock_spark_rooms_get.return_value),
+            obj_to_dict(self.mock_spark_people_get.return_value)))
 
 
     @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
@@ -1265,6 +1295,8 @@ class TaskTestCase(BaseTestCase):
         - The appropriate task is fired asynchronously
         """
 
+        self.mock_spark_people_get.return_value = \
+                self.build_fake_person_tuple()
         self.mock_spark_msg_get.return_value = \
                 self.build_fake_webhook_msg_tuple(text='Zpark show issues')
         self.mock_spark_rooms_get.return_value = self.build_fake_room_tuple()
@@ -1273,9 +1305,8 @@ class TaskTestCase(BaseTestCase):
         zpark.tasks.task_dispatch_spark_command(webhook_data)
 
         mock_task.assert_called_once_with(args=(
-            self.mock_spark_rooms_get.return_value.id,
-            self.mock_spark_rooms_get.return_value.type,
-            self.mock_spark_msg_get.return_value.personEmail))
+            obj_to_dict(self.mock_spark_rooms_get.return_value),
+            obj_to_dict(self.mock_spark_people_get.return_value)))
 
     @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
     def test_task_dispatch_spark_command_direct(self, mock_task):
@@ -1291,6 +1322,8 @@ class TaskTestCase(BaseTestCase):
         - The appropriate task is fired asynchronously
         """
 
+        self.mock_spark_people_get.return_value = \
+                self.build_fake_person_tuple()
         self.mock_spark_msg_get.return_value = \
                 self.build_fake_webhook_msg_tuple(text='show issues')
         self.mock_spark_rooms_get.return_value = \
@@ -1301,9 +1334,8 @@ class TaskTestCase(BaseTestCase):
 
         self.assertTrue(rv)
         mock_task.assert_called_once_with(args=(
-            self.mock_spark_rooms_get.return_value.id,
-            self.mock_spark_rooms_get.return_value.type,
-            self.mock_spark_msg_get.return_value.personEmail))
+            obj_to_dict(self.mock_spark_rooms_get.return_value),
+            obj_to_dict(self.mock_spark_people_get.return_value)))
 
     @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
     def test_task_dispatch_spark_command_group(self, mock_task):
@@ -1319,6 +1351,8 @@ class TaskTestCase(BaseTestCase):
         - The appropriate task is fired asynchronously
         """
 
+        self.mock_spark_people_get.return_value = \
+                self.build_fake_person_tuple()
         self.mock_spark_msg_get.return_value = \
                 self.build_fake_webhook_msg_tuple(text='Zpark show issues')
         self.mock_spark_rooms_get.return_value = \
@@ -1329,9 +1363,8 @@ class TaskTestCase(BaseTestCase):
 
         self.assertTrue(rv)
         mock_task.assert_called_once_with(args=(
-            self.mock_spark_rooms_get.return_value.id,
-            self.mock_spark_rooms_get.return_value.type,
-            self.mock_spark_msg_get.return_value.personEmail))
+            obj_to_dict(self.mock_spark_rooms_get.return_value),
+            obj_to_dict(self.mock_spark_people_get.return_value)))
 
     def test_task_dispatch_spark_command_spark_fail_msg(self):
         """
