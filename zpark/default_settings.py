@@ -1,6 +1,5 @@
 import logging
 
-DEBUG = False
 ZPARK_API_TOKEN = None
 SPARK_ACCESS_TOKEN = None
 #SPARK_WEBHOOK_SECRET = <generate this with "openssl rand 16 -hex">
