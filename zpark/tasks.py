@@ -120,8 +120,9 @@ def task_dispatch_spark_command(self, webhook_data):
         return False
 
     asynctask = task[0].apply_async(args=(*task[1],))
-    logger.info('Dispatched command "{}" to task {} with taskid {}'
-            .format(cmd, task[0], asynctask.id))
+    logger.info('Dispatched command "{}" received from {} to task {}'
+            ' with taskid {}'
+            .format(cmd, msg.personEmail, task[0], asynctask.id))
     return True
 
 
@@ -243,8 +244,8 @@ def task_report_zabbix_active_issues(self, room, caller, limit=10):
             room=room)
     try:
         task_send_spark_message(room, text, markdown)
-        logger.info('Reported active Zabbix issues to room {} (type: {})'
-                .format(room['id'], room['type']))
+        logger.info('Reported active Zabbix issues to {} room "{}"'
+                .format(room['type'], room['title']))
     except SparkApiError as e:
         msg = "The Spark API returned an error: {}".format(e)
         logger.error(msg)
@@ -353,8 +354,8 @@ def task_report_zabbix_server_status(self, room, caller):
             room=room)
     try:
         task_send_spark_message(room, text, markdown)
-        logger.info('Reported Zabbix server stats to room {} (type: {})'
-                .format(room['id'], room['type']))
+        logger.info('Reported Zabbix server stats to {} room "{}"'
+                .format(room['type'], room['title']))
     except SparkApiError as e:
         msg = "The Spark API returned an error: {}".format(e)
         logger.error(msg)
@@ -472,14 +473,14 @@ def notify_of_failed_command(room, caller, retries, max_retries,
                 retries=retries)
         try:
             task_send_spark_message.apply(args=(room, text, markdown))
-            logger.info('Notified room {} (type: {}) that a command'
+            logger.info('Notified {} room "{}" that a command'
                         ' could not be answered'
-                    .format(room['id'], room['type']))
+                    .format(room['type'], room['title']))
         except SparkApiError as e:
-            logger.error('Unable to notify room {} (type: {}) that a'
+            logger.error('Unable to notify {} room "{}" that a'
                          ' command could not be answered:'
                          ' Spark API Error: {}'
-                    .format(room['id'], room['type'], e))
+                    .format(room['type'], room['title'], e))
             raise
     elif retries > max_retries:
         # Since this is an unintuitively valid condition in which this
