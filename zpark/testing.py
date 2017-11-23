@@ -1497,3 +1497,37 @@ class TaskTestCase(BaseTestCase):
             self.assertFalse(rv)
             self.assertFalse(mock_task.called)
 
+    @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
+    def test_task_dispatch_spark_command_loooong_command(self, mock_task):
+        """
+        Test the UUT will reject commands that are longer than is
+        reasonable. The UUT considers "reasonable" to be <= 79 characters.
+
+        The UUT could throw a false positive at us because we're generating
+        a bogus command that doesn't actually exist, so the UUT will bail
+        at the point it discovers this. To catch this, we check that the
+        Spark API methods were not called which should be a good indication
+        that the UUT stopped higher up, well before the check for a
+        known command.
+
+        Expected behavior:
+        - UUT will return False
+        - Spark API is not queried
+        - A task is not dispatched
+        """
+
+        # 84 characters
+        test_cmd = 'show' + ' run' * 20
+
+        self.mock_spark_rooms_get.return_value = self.build_fake_room_tuple()
+        webhook_data = json.loads(self.build_fake_webhook_json())
+
+        self.mock_spark_msg_get.return_value = \
+                self.build_fake_webhook_msg_tuple(text=test_cmd)
+        rv = zpark.tasks.task_dispatch_spark_command(webhook_data)
+
+        self.assertFalse(rv)
+        self.assertFalse(self.mock_spark_rooms_get.called)
+        self.assertFalse(self.mock_spark_people_get.called)
+        self.assertFalse(mock_task.called)
+

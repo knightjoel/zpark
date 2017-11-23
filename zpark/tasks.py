@@ -66,12 +66,16 @@ def task_dispatch_spark_command(self, webhook_data):
         self.retry(exc=e)
 
     cmd = msg.text
-    ellipsis = ' (...)' if len(cmd) > 79 else ''
+    if len(cmd) > 79:
+        logger.debug('Received a command from {} that is too long:'
+                ' allowed chars: 79, received chars: {}. Ignoring.'
+                .format(payload['personEmail'], len(cmd)))
+        return False
 
     # validate the command looks sane and safe
     if not re.fullmatch('^[a-zA-Z0-9 ]+$', msg.text):
         logger.warning('Received a command with invalid characters in it:'
-                ' "{}{}"'.format(cmd[:79], ellipsis))
+                ' "{}"'.format(cmd))
         return False
 
     try:
@@ -111,13 +115,13 @@ def task_dispatch_spark_command(self, webhook_data):
 
     task = dispatch_map.get(cmd.lower(), None)
     if not task:
-        logger.debug('Received an unknown command:"{}{}" from:{}'
-                .format(cmd[:79], ellipsis, msg.personEmail))
+        logger.debug('Received an unknown command:"{}" from:{}'
+                .format(cmd, msg.personEmail))
         return False
 
     asynctask = task[0].apply_async(args=(*task[1],))
-    logger.info('Dispatched command "{}{}" to task {} with taskid {}'
-            .format(cmd[:79], ellipsis, task[0], asynctask.id))
+    logger.info('Dispatched command "{}" to task {} with taskid {}'
+            .format(cmd, task[0], asynctask.id))
     return True
 
 
