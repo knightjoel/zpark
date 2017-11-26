@@ -115,24 +115,42 @@ access the Zpark URL, you will not be able to issue commands to the bot.
 
 
 #
-# The following settings are entirely optional and are fine being left
-# at their defaults.
+# Logging configuration. Default is to log to syslog using
+# the LOCAL6 facility.
 #
+# The APP_LOG_* options configure logging for the Zpark API; ie, the
+# bits of Zpark that handle requests to the API. The logging done
+# by the Celery workers is partially hard-coded in zpark/tasks.py
+# and partially controlled by the CLI that invokes Celery.
+#
+# The logging module *must* be imported here in order to refer
+# to symbols found in the module.
+#
+
+import logging
+import logging.handlers
 
 """
 APP_LOG_LOGLEVEL
 
 Configures the veribosity of the logs coming from the Zpark API service.
 Set to 'logging.DEBUG' for maximum verbosity and to aid in troubleshooting.
-
-The logging module *must* be imported to use log level names such as
-'logging.INFO'.
 """
-import logging
 APP_LOG_LOGLEVEL = logging.INFO
 
-APP_LOG_MAXBYTES = 1024 * 1024 * 10
-APP_LOG_ROTATECOUNT = 2
+"""
+APP_LOG_HANDLER
+
+Configures the handler (and ultimately the destination) of the Zpark log
+messages. Refer to the logging.handlers module documentation for
+proper syntax and considerations.
+
+The APP_LOG_LOGLEVEL will be applied to this handler by Zpark.
+"""
+APP_LOG_HANDLER = logging.handlers.SysLogHandler(
+        # XXX log socket is platform dependent
+        '/dev/log',
+        logging.handlers.SysLogHandler.LOG_LOCAL6)
 
 MAX_CONTENT_LENGTH = 1024 * 32
 
