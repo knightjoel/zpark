@@ -33,7 +33,7 @@ if not app.debug and not sys.stdout.isatty():
 
     log_handler = app.config['APP_LOG_HANDLER']
     log_handler.setFormatter(Formatter(
-            '%(asctime)s %(levelname)s: %(message)s'
+            '%(levelname)s: %(message)s'
             ' [in %(pathname)s:%(lineno)d]'
             ' [client:%(client_ip)s method:"%(method)s" url:"%(url)s"'
             ' ua:"%(user_agent)s"]'
