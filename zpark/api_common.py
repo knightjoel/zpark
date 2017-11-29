@@ -141,6 +141,11 @@ def send_spark_alert_message(sendto, subject, message):
         app.logger.error("Unable to create task 'task_send_spark_message'."
                 " Spark alert dropped! {}: {}\n{}"
                 .format(type(e).__name__, e, traceback.format_exc()))
+        return {
+            'error': 'Unable to create task \'task_send_spark_message\':'
+                    ' {}: {} {}'.format(type(e).__name__, e,
+                                        traceback.format_exc())
+        }, 500
 
     app.logger.info("New Spark alert message (task {}): to:{} subject:\"{}\""
                         .format(task.id, sendto, subject))
