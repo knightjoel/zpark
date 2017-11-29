@@ -111,7 +111,13 @@ class ApiTestCase(BaseTestCase):
         super(ApiTestCase, self).setUp()
 
     def tearDown(self):
-        self.mock_sendmsg_patcher.stop()
+        # Allow an individual test to stop a patch without incurring an
+        # exception during teardown (stopping an already stopped patch
+        # throws an exception).
+        try:
+            self.mock_sendmsg_patcher.stop()
+        except RuntimeError:
+            pass
         super(ApiTestCase, self).tearDown()
 
 
@@ -175,6 +181,100 @@ class ApiV1TestCase(ApiTestCase):
         self.assertEqual(rjson['message'], '{}\n\n{}'.format(subject, message))
         self.assertEqual(rjson['to'], to)
         self.assertEqual(rjson['taskid'], 'id123abc')
+
+    def test_alert_through_to_task_direct(self):
+        """
+        POST a new, valid alert to a 1:1 space and validate it passes through
+        the API layer and successfully to the task layer.
+
+        This is bigger than strictly a unit test, however I'm writing this
+        in response to a bug I introduced because I didn't have this
+        kind of test coverage.
+
+        Expected behavior:
+            - No exceptions thrown
+            - Spark API is requested to create a new message (mocked)
+            - Spark API creates a new message addressed to an individual
+        """
+
+        to = u'joel@zpark.packetmischief'
+        subject = u'This might ruin your day...'
+        message = u'Your data center is on fire'
+
+        # disable the patch on task_send_spark_message(); we want the
+        # real function to be called
+        self.mock_sendmsg_patcher.stop()
+
+        self.mock_spark_msg_create_patcher = \
+                patch('zpark.spark_api.messages.create', autospec=True)
+        self.mock_spark_msg_create = self.mock_spark_msg_create_patcher.start()
+
+        # Run the task synchronously for this UT
+        zpark.celery.conf.task_always_eager = True
+        r = self.client.post(url_for('api_v1.alert'),
+                             headers=[self.sb_api_token],
+                             data=json.dumps({
+                                'to': to,
+                                'subject': subject,
+                                'message': message
+                             }),
+                             content_type='application/json')
+        zpark.celery.conf.task_always_eager = False
+
+        self.assert_200(r)
+        self.mock_spark_msg_create.assert_called_once()
+        rjson = json.loads(r.data)
+        self.assertEqual(rjson['message'], '{}\n\n{}'.format(subject, message))
+        self.assertEqual(rjson['to'], to)
+
+        self.mock_spark_msg_create_patcher.stop()
+
+    def test_alert_through_to_task_group(self):
+        """
+        POST a new, valid alert to a group space and validate it passes through
+        the API layer and successfully to the task layer.
+
+        This is bigger than strictly a unit test, however I'm writing this
+        in response to a bug I introduced because I didn't have this
+        kind of test coverage.
+
+        Expected behavior:
+            - No exceptions thrown
+            - Spark API is requested to create a new message (mocked)
+            - Spark API creates a new message addressed to a group space
+        """
+
+        to = u'roomid12345'
+        subject = u'This might ruin your day...'
+        message = u'Your data center is on fire'
+
+        # disable the patch on task_send_spark_message(); we want the
+        # real function to be called
+        self.mock_sendmsg_patcher.stop()
+
+        self.mock_spark_msg_create_patcher = \
+                patch('zpark.spark_api.messages.create', autospec=True)
+        self.mock_spark_msg_create = self.mock_spark_msg_create_patcher.start()
+
+        # Run the task synchronously for this UT
+        zpark.celery.conf.task_always_eager = True
+        r = self.client.post(url_for('api_v1.alert'),
+                             headers=[self.sb_api_token],
+                             data=json.dumps({
+                                'to': to,
+                                'subject': subject,
+                                'message': message
+                             }),
+                             content_type='application/json')
+        zpark.celery.conf.task_always_eager = False
+
+        self.assert_200(r)
+        self.mock_spark_msg_create.assert_called_once()
+        rjson = json.loads(r.data)
+        self.assertEqual(rjson['message'], '{}\n\n{}'.format(subject, message))
+        self.assertEqual(rjson['to'], to)
+
+        self.mock_spark_msg_create_patcher.stop()
 
     def test_alert_post_valid_alert_wo_token(self):
         to = u'joel@zpark.packetmischief'
@@ -841,11 +941,29 @@ class TaskTestCase(BaseTestCase):
                                 format=fmt)
 
     def tearDown(self):
-        self.mock_spark_people_get_patcher.stop()
-        self.mock_spark_msg_create_patcher.stop()
-        self.mock_spark_msg_get_patcher.stop()
-        self.mock_spark_rooms_get_patcher.stop()
-        self.mock_zabbixapi_patcher.stop()
+        # Allow an individual test to stop a patch without incurring an
+        # exception during teardown (stopping an already stopped patch
+        # throws an exception).
+        try:
+            self.mock_spark_people_get_patcher.stop()
+        except RuntimeError:
+            pass
+        try:
+            self.mock_spark_msg_create_patcher.stop()
+        except RuntimeError:
+            pass
+        try:
+            self.mock_spark_msg_get_patcher.stop()
+        except RuntimeError:
+            pass
+        try:
+            self.mock_spark_rooms_get_patcher.stop()
+        except RuntimeError:
+            pass
+        try:
+            self.mock_zabbixapi_patcher.stop()
+        except RuntimeError:
+            pass
 
     def build_spark_api_reply(self, toPersonEmail=None, text=None,
                               roomId=None):
