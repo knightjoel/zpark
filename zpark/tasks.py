@@ -142,6 +142,7 @@ def task_send_spark_message(self, to, text, md=None):
         - None
 
     Raises:
+        TypeError: If the 'to' argument is not a dict.
         SparkApiError: The Spark API returned an error and
             despite retrying the API call some number of times, the error
             persisted. SparkApiError is re-raised to bubble the error
