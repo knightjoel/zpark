@@ -130,17 +130,30 @@ def ping(api_version):
     }
 
 def send_spark_alert_message(sendto, subject, message):
+    # The appropriate dict needs to be passed to the task. This is a
+    # reasonably reliable but not fool-proof way to determine if the
+    # recipient is a user or a room.
+    if '@' in sendto:
+        to = {'emails': [sendto]}
+    else:
+        to = {'id': sendto}
+
     if message is not None:
         text = '\n\n'.join([subject, message])
     else:
         text = subject
 
     try:
-        task = task_send_spark_message.apply_async((sendto, text))
+        task = task_send_spark_message.apply_async((to, text))
     except (TypeError, task_send_spark_message.OperationalError) as e:
         app.logger.error("Unable to create task 'task_send_spark_message'."
                 " Spark alert dropped! {}: {}\n{}"
                 .format(type(e).__name__, e, traceback.format_exc()))
+        return {
+            'error': 'Unable to create task \'task_send_spark_message\':'
+                    ' {}: {} {}'.format(type(e).__name__, e,
+                                        traceback.format_exc())
+        }, 500
 
     app.logger.info("New Spark alert message (task {}): to:{} subject:\"{}\""
                         .format(task.id, sendto, subject))
