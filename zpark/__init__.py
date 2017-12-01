@@ -8,6 +8,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 import pyzabbix
 from werkzeug.contrib.fixers import ProxyFix
 
+from .log import setup_api_logging
 
 basedir = os.path.dirname(os.path.abspath(__file__))
 basedir = os.path.abspath(basedir + '/../')
@@ -24,50 +25,7 @@ celery.conf.worker_hijack_root_logger = False
 celery.conf.task_eager_propagates = True
 
 if not app.debug and not sys.stdout.isatty():
-    import logging
-    import logging.config
-    from zpark.log import ContextualLogFilter
-
-    # Tickle Flask to init its logger. It _appears_ as though if Flask's
-    # logger is not initialized ahead of the dictConfig() call, that Flask
-    # then overwrites the config that dictConfig() creates with its own
-    # default config. Letting Flask init its logger ahead of the
-    # dictConfig() call magically makes it work. None of this is documented
-    # in the Flask 0.12 docs.
-    app.logger
-
-    logconf = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'formatters': {
-            'appfmt': { 'format': app.config.get('APP_LOG_FORMAT', '') },
-        },
-        'handlers': {
-            'apph': app.config.get('APP_LOG_HANDLER', {})
-        },
-        'filters': {
-            'appfilt': {
-                '()': ContextualLogFilter,
-            },
-        },
-        'loggers': {
-            # Flask 0.12 installs its log handler under a name which it
-            # stores in an app object property.
-            app.logger_name: {
-                'handlers': ['apph'],
-                # this can be turned down via the handler's log level
-                'level': logging.DEBUG,
-            },
-        },
-    }
-    # Apply the formatter and the contextual filter to the handler. User
-    # cannot override this.
-    logconf['handlers']['apph'].update({
-            'formatter': 'appfmt',
-            'filters': ['appfilt']
-    })
-
-    logging.config.dictConfig(logconf)
+    setup_api_logging(app)
 
 jinja2 = Environment(
     loader=FileSystemLoader(basedir + '/zpark/templates'),
