@@ -25,21 +25,49 @@ celery.conf.task_eager_propagates = True
 
 if not app.debug and not sys.stdout.isatty():
     import logging
-    from logging import Formatter
+    import logging.config
     from zpark.log import ContextualLogFilter
 
-    app.logger.setLevel(logging.DEBUG)
-    app.logger.addFilter(ContextualLogFilter())
+    # Tickle Flask to init its logger. It _appears_ as though if Flask's
+    # logger is not initialized ahead of the dictConfig() call, that Flask
+    # then overwrites the config that dictConfig() creates with its own
+    # default config. Letting Flask init its logger ahead of the
+    # dictConfig() call magically makes it work. None of this is documented
+    # in the Flask 0.12 docs.
+    app.logger
 
-    log_handler = app.config['APP_LOG_HANDLER']
-    log_handler.setFormatter(Formatter(
-            '%(levelname)s: %(message)s'
-            ' [in %(pathname)s:%(lineno)d]'
-            ' [client:%(client_ip)s method:"%(method)s" url:"%(url)s"'
-            ' ua:"%(user_agent)s"]'
-            ))
-    log_handler.setLevel(app.config['APP_LOG_LOGLEVEL'])
-    app.logger.addHandler(log_handler)
+    logconf = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'appfmt': { 'format': app.config.get('APP_LOG_FORMAT', '') },
+        },
+        'handlers': {
+            'apph': app.config.get('APP_LOG_HANDLER', {})
+        },
+        'filters': {
+            'appfilt': {
+                '()': ContextualLogFilter,
+            },
+        },
+        'loggers': {
+            # Flask 0.12 installs its log handler under a name which it
+            # stores in an app object property.
+            app.logger_name: {
+                'handlers': ['apph'],
+                # this can be turned down via the handler's log level
+                'level': logging.DEBUG,
+            },
+        },
+    }
+    # Apply the formatter and the contextual filter to the handler. User
+    # cannot override this.
+    logconf['handlers']['apph'].update({
+            'formatter': 'appfmt',
+            'filters': ['appfilt']
+    })
+
+    logging.config.dictConfig(logconf)
 
 jinja2 = Environment(
     loader=FileSystemLoader(basedir + '/zpark/templates'),

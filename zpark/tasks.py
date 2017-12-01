@@ -366,7 +366,6 @@ def task_report_zabbix_server_status(self, room, caller):
 @celery.signals.setup_logging.connect
 def celery_setup_logging(loglevel=None, logfile=None, fmt=None,
                          colorize=None, **kwargs):
-    import logging
     import logging.config
     import celery.app.log
 
@@ -375,42 +374,33 @@ def celery_setup_logging(loglevel=None, logfile=None, fmt=None,
         'formatters': {
             'taskfmt': {
                 '()': celery.app.log.TaskFormatter,
-                'fmt': celery_app.conf.worker_task_log_format
+                'fmt': app.config.get('WORKER_TASK_LOG_FORMAT',
+                                      celery_app.conf.worker_task_log_format),
             },
             'workerfmt': {
-                'format': celery_app.conf.worker_log_format
+                'format': app.config.get('WORKER_LOG_FORMAT',
+                                         celery_app.conf.worker_log_format),
             },
         },
         'handlers': {
-            'taskh': {
-                'level': loglevel or logging.INFO,
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': os.path.join(basedir, 'logs/task.log'),
-                'maxBytes': app.config['APP_LOG_MAXBYTES'],
-                'backupCount': app.config['APP_LOG_ROTATECOUNT'],
-                'formatter': 'taskfmt'
-            },
-            'workh': {
-                'level': loglevel or logging.INFO,
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': os.path.join(basedir, 'logs/task.log'),
-                'maxBytes': app.config['APP_LOG_MAXBYTES'],
-                'backupCount': app.config['APP_LOG_ROTATECOUNT'],
-                'formatter': 'workerfmt'
-            },
+            # Create copies of the dicts stored in the app config.
+            'taskh': dict(app.config.get('WORKER_LOG_HANDLER', {})),
+            'workh': dict(app.config.get('WORKER_LOG_HANDLER', {})),
             'nullh': {
-                'level': loglevel or logging.INFO,
+                'level': 'INFO',
                 'class': 'logging.NullHandler',
             }
         },
         'loggers': {
             'celery': {
                 'handlers': ['workh'],
-                'level': loglevel or logging.INFO
+                # this can be turned down via the handler's log level
+                'level': 'DEBUG'
             },
             'celery.task': {
                 'handlers': ['taskh'],
-                'level': loglevel or logging.INFO,
+                # this can be turned down via the handler's log level
+                'level': 'DEBUG',
                 'propagate': 0
             },
             # Celery will make this logger a child of 'celery.task' when
@@ -419,11 +409,20 @@ def celery_setup_logging(loglevel=None, logfile=None, fmt=None,
             # will emit the log message.
             __name__: {
                 'handlers': ['nullh'],
-                'level': loglevel or logging.INFO,
+                # this can be turned down via the handler's log level
+                'level': 'DEBUG',
                 'propagate': 1
             }
         },
     }
+
+    # Apply the correct formatters to the handlers. User cannot override this.
+    logconf['handlers']['taskh'].update({
+            'formatter': 'taskfmt',
+    })
+    logconf['handlers']['workh'].update({
+            'formatter': 'workerfmt',
+    })
 
     logging.config.dictConfig(logconf)
 
