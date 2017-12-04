@@ -48,10 +48,10 @@ def setup_api_logging(app):
         'version': 1,
         'disable_existing_loggers': False,
         'formatters': {
-            'appfmt': { 'format': app.config.get('APP_LOG_FORMAT', '') },
+            'appfmt': { 'format': app.config.get('API_LOG_FORMAT', '') },
         },
         'handlers': {
-            'apph': app.config.get('APP_LOG_HANDLER', {})
+            'apph': app.config.get('API_LOG_HANDLER', {})
         },
         'filters': {
             'appfilt': {

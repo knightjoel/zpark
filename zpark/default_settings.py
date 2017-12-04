@@ -118,28 +118,28 @@ access the Zpark URL, you will not be able to issue commands to the bot.
 # Logging configuration. Default is to log to syslog using
 # the LOCAL6 facility.
 #
-# The APP_LOG_* options configure logging for the Zpark API; ie, the
+# The API_LOG_* options configure logging for the Zpark API; ie, the
 # bits of Zpark that handle requests to the API. The logging done
 # by the Celery workers is controlled by the WORKER_LOG_* options.
 
 """
-APP_LOG_HANDLER
+API_LOG_HANDLER
 
 Configures the handler (and ultimately the destination) of the Zpark API log
 messages. Refer to the logging.handlers module documentation for
 proper syntax and considerations.
 
-The format specified by APP_LOG_FORMAT will automatically be applied to this
+The format specified by API_LOG_FORMAT will automatically be applied to this
 handler by Zpark.
 """
-APP_LOG_HANDLER = {
+API_LOG_HANDLER = {
         'class': 'logging.handlers.SysLogHandler',
         'address': '/dev/log',
         'facility': 'local6',
         'level': 'INFO'
 }
 
-APP_LOG_FORMAT = ('API/%(levelname)s: %(message)s'
+API_LOG_FORMAT = ('API/%(levelname)s: %(message)s'
                   ' [in %(pathname)s:%(lineno)d]'
                   ' [client:%(client_ip)s method:"%(method)s" url:"%(url)s"'
                   ' ua:"%(user_agent)s"]')
