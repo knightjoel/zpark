@@ -13,6 +13,7 @@ basedir = os.path.dirname(os.path.abspath(__file__))
 basedir = os.path.abspath(basedir + '/../')
 
 app = Flask(__name__, instance_path=basedir, instance_relative_config=True)
+app.config['MAX_CONTENT_LENGTH'] = 1024 * 32
 app.config.from_object('zpark.default_settings')
 app.config.from_pyfile('app.cfg', silent=True)
 
