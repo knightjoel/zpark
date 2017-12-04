@@ -120,8 +120,7 @@ access the Zpark URL, you will not be able to issue commands to the bot.
 #
 # The APP_LOG_* options configure logging for the Zpark API; ie, the
 # bits of Zpark that handle requests to the API. The logging done
-# by the Celery workers is partially hard-coded in zpark/tasks.py
-# and partially controlled by the CLI that invokes Celery.
+# by the Celery workers is controlled by the WORKER_LOG_* options.
 
 """
 APP_LOG_HANDLER
