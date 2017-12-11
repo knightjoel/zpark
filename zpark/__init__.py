@@ -8,6 +8,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 import pyzabbix
 from werkzeug.contrib.fixers import ProxyFix
 
+from .log import setup_api_logging
 
 basedir = os.path.dirname(os.path.abspath(__file__))
 basedir = os.path.abspath(basedir + '/../')
@@ -25,26 +26,7 @@ celery.conf.worker_hijack_root_logger = False
 celery.conf.task_eager_propagates = True
 
 if not app.debug and not sys.stdout.isatty():
-    import logging
-    from logging import Formatter
-    from logging.handlers import RotatingFileHandler
-    from zpark.log import ContextualLogFilter
-
-    app.logger.setLevel(logging.DEBUG)
-    app.logger.addFilter(ContextualLogFilter())
-
-    file_handler = RotatingFileHandler(
-            os.path.join(basedir, 'logs/app.log'),
-            maxBytes=app.config['APP_LOG_MAXBYTES'],
-            backupCount=app.config['APP_LOG_ROTATECOUNT'])
-    file_handler.setFormatter(Formatter(
-            '%(asctime)s %(levelname)s: %(message)s'
-            ' [in %(pathname)s:%(lineno)d]'
-            ' [client:%(client_ip)s method:"%(method)s" url:"%(url)s"'
-            ' ua:"%(user_agent)s"]'
-            ))
-    file_handler.setLevel(app.config['APP_LOG_LOGLEVEL'])
-    app.logger.addHandler(file_handler)
+    setup_api_logging(app)
 
 jinja2 = Environment(
     loader=FileSystemLoader(basedir + '/zpark/templates'),

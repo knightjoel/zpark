@@ -32,7 +32,7 @@ class Alert(Resource):
                             help='The contents of the alert message. Optional.')
         args = parser.parse_args()
 
-        app.logger.info("API: create alert: to:{} subject:<hidden>"
+        app.logger.info("create alert: to:{} subject:<hidden>"
                 " message:<hidden>"
                 .format(args['to']))
 
@@ -45,7 +45,7 @@ class Ping(Resource):
 
     @api_common.requires_api_token
     def get(self):
-        app.logger.info("API: ping")
+        app.logger.info("ping")
         return api_common.ping(api_version=API_VERSION)
 
 class Webhook(Resource):
@@ -101,7 +101,7 @@ class Webhook(Resource):
 
         if 'SPARK_WEBHOOK_SECRET' in app.config:
             if sparkhmac is None:
-                app.logger.warning("API: webhook: Unauthorized webhook"
+                app.logger.warning("webhook: Unauthorized webhook"
                         " callback received: no X-Spark-Signature header."
                         " Verify the callback has a configured secret."
                         " id:{} name:\"{}\""
@@ -117,12 +117,12 @@ class Webhook(Resource):
                                digestmod=hashlib.sha1).hexdigest()
 
             if hmac.compare_digest(ourhmac, sparkhmac) is False:
-                app.logger.warning("API: webhook: Unauthorized webhook"
+                app.logger.warning("webhook: Unauthorized webhook"
                         " callback received: HMACs do not match."
                         " Verify proper setting of 'SPARK_WEBHOOK_SECRET'."
                         " id:{} name:\"{}\""
                         .format(whid, whname))
-                app.logger.debug("API: webhook: Spark's HMAC: {}"
+                app.logger.debug("webhook: Spark's HMAC: {}"
                         " / Our computed HMAC: {}"
                         .format(sparkhmac, ourhmac))
                 return (
@@ -130,7 +130,7 @@ class Webhook(Resource):
                     403
                 )
 
-        app.logger.info("API: webhook callback received: id:{} name:\"{}\""
+        app.logger.info("webhook callback received: id:{} name:\"{}\""
                 .format(whid, whname))
 
         return api_common.handle_spark_webhook(reqjson)

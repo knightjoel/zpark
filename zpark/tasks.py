@@ -10,6 +10,7 @@ from pyzabbix import ZabbixAPIException
 
 from zpark import app, basedir, jinja2, spark_api, zabbix_api
 from zpark import celery as celery_app
+from zpark.log import setup_celery_logging
 from zpark.utils import obj_to_dict
 
 
@@ -19,6 +20,11 @@ __all__ = [
 ]
 
 logger = get_task_logger(__name__)
+
+
+@celery.signals.setup_logging.connect
+def setup_logging(**kwargs):
+    setup_celery_logging(app, celery_app, __name__, **kwargs)
 
 
 @celery_app.task(bind=True, default_retry_delay=20, max_retries=3)
@@ -361,71 +367,6 @@ def task_report_zabbix_server_status(self, room, caller):
         msg = "The Spark API returned an error: {}".format(e)
         logger.error(msg)
         self.retry(exc=e)
-
-
-@celery.signals.setup_logging.connect
-def celery_setup_logging(loglevel=None, logfile=None, fmt=None,
-                         colorize=None, **kwargs):
-    import logging
-    import logging.config
-    import celery.app.log
-
-    logconf = {
-        'version': 1,
-        'formatters': {
-            'taskfmt': {
-                '()': celery.app.log.TaskFormatter,
-                'fmt': celery_app.conf.worker_task_log_format
-            },
-            'workerfmt': {
-                'format': celery_app.conf.worker_log_format
-            },
-        },
-        'handlers': {
-            'taskh': {
-                'level': loglevel or logging.INFO,
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': os.path.join(basedir, 'logs/task.log'),
-                'maxBytes': app.config['APP_LOG_MAXBYTES'],
-                'backupCount': app.config['APP_LOG_ROTATECOUNT'],
-                'formatter': 'taskfmt'
-            },
-            'workh': {
-                'level': loglevel or logging.INFO,
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': os.path.join(basedir, 'logs/task.log'),
-                'maxBytes': app.config['APP_LOG_MAXBYTES'],
-                'backupCount': app.config['APP_LOG_ROTATECOUNT'],
-                'formatter': 'workerfmt'
-            },
-            'nullh': {
-                'level': loglevel or logging.INFO,
-                'class': 'logging.NullHandler',
-            }
-        },
-        'loggers': {
-            'celery': {
-                'handlers': ['workh'],
-                'level': loglevel or logging.INFO
-            },
-            'celery.task': {
-                'handlers': ['taskh'],
-                'level': loglevel or logging.INFO,
-                'propagate': 0
-            },
-            # Celery will make this logger a child of 'celery.task' when
-            # the get_task_logger(__name__) function is called at the top
-            # of this module. Propagate logs upwards to 'celery.task' which
-            # will emit the log message.
-            __name__: {
-                'handlers': ['nullh'],
-                'level': loglevel or logging.INFO,
-                'propagate': 1
-            }
-        },
-    }
-
-    logging.config.dictConfig(logconf)
 
 
 def notify_of_failed_command(room, caller, retries, max_retries,

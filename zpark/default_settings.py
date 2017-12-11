@@ -115,22 +115,59 @@ access the Zpark URL, you will not be able to issue commands to the bot.
 
 
 #
-# The following settings are entirely optional and are fine being left
-# at their defaults.
+# Logging configuration. Default is to log to syslog using
+# the LOCAL6 facility.
 #
+# The API_LOG_* options configure logging for the Zpark API; ie, the
+# bits of Zpark that handle requests to the API. The logging done
+# by the Celery workers is controlled by the WORKER_LOG_* options.
 
 """
-APP_LOG_LOGLEVEL
+API_LOG_HANDLER
 
-Configures the veribosity of the logs coming from the Zpark API service.
-Set to 'logging.DEBUG' for maximum verbosity and to aid in troubleshooting.
+Configures the handler (and ultimately the destination) of the Zpark API log
+messages. Refer to the logging.handlers module documentation for
+proper syntax and considerations.
 
-The logging module *must* be imported to use log level names such as
-'logging.INFO'.
+The format specified by API_LOG_FORMAT will automatically be applied to this
+handler by Zpark.
 """
-import logging
-APP_LOG_LOGLEVEL = logging.INFO
+API_LOG_HANDLER = {
+        'class': 'logging.handlers.SysLogHandler',
+        'address': '/dev/log',
+        'facility': 'local6',
+        'level': 'INFO'
+}
 
-APP_LOG_MAXBYTES = 1024 * 1024 * 10
-APP_LOG_ROTATECOUNT = 2
+API_LOG_FORMAT = ('API/%(levelname)s: %(message)s'
+                  ' [in %(pathname)s:%(lineno)d]'
+                  ' [client:%(client_ip)s method:"%(method)s" url:"%(url)s"'
+                  ' ua:"%(user_agent)s"]')
+
+"""
+WORKER_LOG_HANDLER
+
+Configures the handler (and ultimately the destination) of the Zpark task
+worker log messages. Refer to the logging.handlers module documentation for
+proper syntax and considerations.
+
+The format specified by WORKER_LOG_FORMAT and WORKER_TASK_LOG_FORMAT will
+automatically be applied to this handler by Zpark.
+
+    - WORKER_LOG_FORMAT: used for messages logged by Celery workers about the
+        maintenance and status of task operations.
+    - WORKER_TASK_LOG_FORMAT: used for messages logged by tasks that Celery
+        is executing.
+"""
+WORKER_LOG_HANDLER = {
+        'class': 'logging.handlers.SysLogHandler',
+        'address': '/dev/log',
+        'facility': 'local6',
+        'level': 'INFO'
+}
+
+WORKER_LOG_FORMAT = ('Worker/%(levelname)s: %(processName)s:'
+                     ' %(message)s')
+WORKER_TASK_LOG_FORMAT = ('WorkerTask/%(levelname)s: %(processName)s:'
+                          ' %(task_name)s[%(task_id)s] %(message)s')
 
