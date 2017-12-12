@@ -167,16 +167,58 @@ def send_spark_alert_message(sendto, subject, message):
 def requires_api_token(func):
     @wraps(func)
     def decorated(*args, **kwargs):
-        token = request.headers.get('Token', None)
+        """
+        Authenticate API requests by checking for a valid token in the request.
 
-        if not token or not current_app.config['ZPARK_API_TOKEN']:
-            current_app.logger.warning("Request was missing ZPARK_API_TOKEN")
+        The API token is configured in the ZPARK_API_TOKEN config parameter
+        in app.cfg. A client that calls a Zpark API endpoint must pass the
+        same value as configured for ZPARK_API_TOKEN via the Token header
+        in the HTTP request. The request is successfully authenticated if
+        the Token header value matches the ZPARK_API_TOKEN value. The request
+        fails authentication if the values differ or if the client didn't
+        provide a Token header.
+
+        Zpark must be configured with a static token in the ZPARK_API_TOKEN
+        config parameter. If this parameter is not present in the config,
+        the app will reject incoming API requests as a safety measure.
+
+        Use of the token may be disabled by setting ZPARK_API_TOKEN to None.
+        This is almost certainly not what you want and should not be done
+        unless you clearly understand what you're doing.
+
+        Args:
+            - None
+
+        Returns:
+            - This is a decorator function so it returns the wrapped function
+                when authentication is successful.
+            - When authentication fails, the decorator calls the Flask::abort
+                function with an appropriate HTTP status code.
+
+        Throws:
+            - None
+        """
+
+        req_token = request.headers.get('Token', None)
+
+        if 'ZPARK_API_TOKEN' not in current_app.config:
+            current_app.logger.error("Request rejected: ZPARK_API_TOKEN"
+                                     " must be set in app.cfg")
+            abort(500)
+        else:
+            our_token = current_app.config['ZPARK_API_TOKEN']
+
+        if not req_token and our_token is not None:
+            current_app.logger.warning("Request rejected: client"
+                                      " did not provide a ZPARK_API_TOKEN")
             abort(401)
 
-        if token == current_app.config['ZPARK_API_TOKEN']:
+        if req_token == our_token or our_token is None:
             return func(*args, **kwargs)
         else:
-            current_app.logger.warning("Invalid ZPARK_API_TOKEN")
+            current_app.logger.warning("Request rejected: Invalid"
+                                       " ZPARK_API_TOKEN received from"
+                                       " client")
             abort(401)
 
     return decorated

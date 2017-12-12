@@ -28,11 +28,14 @@ themselves. If consumers don't provide the correct token, their API
 requests will be ignored. Most notably, this token value is used in
 the zpark_alert.sh script on the Zabbix server.
 
+A value of None will disable the token and allow anyone to call the
+Zpark API. This is almost certainly not what you want.
+
 You can securely generate this token with the command:
 
     openssl rand 16 -hex
 """
-ZPARK_API_TOKEN = None
+#ZPARK_API_TOKEN = <generate this with "openssl rand 16 -hex">
 
 
 """
