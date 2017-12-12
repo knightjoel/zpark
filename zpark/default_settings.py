@@ -118,6 +118,24 @@ access the Zpark URL, you will not be able to issue commands to the bot.
 
 
 #
+# The following settings may optionally be configured in app.cfg
+#
+
+"""
+SPARK_TRUSTED_USERS
+
+This is a list of Spark users that are allowed to send commands to Zpark.
+This is an optional access control mechanism to prevent anyone and everyone
+from being able to query your Zabbix server via Zpark.
+
+The list must contain the email addresses associated with the Spark users
+that are to be trusted. If this setting is commented out, the access check
+is disabled.
+"""
+#SPARK_TRUSTED_USERS = ['user@domain']
+
+
+#
 # Logging configuration. Default is to log to syslog using
 # the LOCAL6 facility.
 #
