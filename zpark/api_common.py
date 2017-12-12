@@ -77,8 +77,8 @@ def handle_spark_webhook(data):
     try:
         if data['resource'] != 'messages' or data['event'] != 'created':
             app.logger.error("Received a webhook notification that is not"
-                    " supported: resource:{} event:{} name:\"{}\""
-                    .format(data['resource'], data['event'], data['name']))
+                    " supported: webhook:\"{}\" resource:{} event:{}"
+                    .format(data['name'], data['resource'], data['event']))
             return (
                 {'error': 'No support for that type of resource and/or event'},
                 400
@@ -112,7 +112,7 @@ def handle_spark_webhook(data):
             500
         )
 
-    app.logger.info("A Spark command was received (task {}):"
+    app.logger.info("A command was received via Spark (task {}):"
                         " webhook:\"{}\" resource:{} event:{}"
                         .format(task.id, data['name'], data['resource'],
                                 data['event']))
@@ -149,13 +149,13 @@ def send_spark_alert_message(sendto, subject, message):
         app.logger.error("Unable to create task 'task_send_spark_message'."
                 " Spark alert dropped! {}: {}\n{}"
                 .format(type(e).__name__, e, traceback.format_exc()))
-        return {
-            'error': 'Unable to create task \'task_send_spark_message\':'
-                    ' {}: {} {}'.format(type(e).__name__, e,
-                                        traceback.format_exc())
-        }, 500
+        return (
+            {'error': 'Unable to create worker task'},
+            500
+        )
 
-    app.logger.info("New Spark alert message (task {}): to:{} subject:\"{}\""
+    app.logger.info("Dispatched an alert message to Spark (task {}): to:{} "
+                    " subject:\"{}\""
                         .format(task.id, sendto, subject))
 
     return {

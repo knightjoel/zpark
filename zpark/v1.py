@@ -32,9 +32,8 @@ class Alert(Resource):
                             help='The contents of the alert message. Optional.')
         args = parser.parse_args()
 
-        app.logger.info("create alert: to:{} subject:<hidden>"
-                " message:<hidden>"
-                .format(args['to']))
+        app.logger.info("create alert: to:{} subject:{}"
+                .format(args['to'], args['subject']))
 
         return api_common.send_spark_alert_message(args['to'],
                                                    args['subject'],

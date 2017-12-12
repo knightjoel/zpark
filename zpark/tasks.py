@@ -67,29 +67,29 @@ def task_dispatch_spark_command(self, webhook_data):
         logger.debug('Querying Spark for message id {}'.format(payload['id']))
         msg = spark_api.messages.get(payload['id'])
     except SparkApiError as e:
-        msg = "The Spark API returned an error: {}".format(e)
-        logger.error(msg)
+        err = "The Spark API returned an error: {}".format(e)
+        logger.error(err)
         self.retry(exc=e)
 
     cmd = msg.text
     if len(cmd) > 79:
-        logger.debug('Received a command from {} that is too long:'
+        logger.info('Received a command from {} that is too long:'
                 ' allowed chars: 79, received chars: {}. Ignoring.'
                 .format(payload['personEmail'], len(cmd)))
         return False
 
     # validate the command looks sane and safe
     if not re.fullmatch('^[a-zA-Z0-9 ]+$', msg.text):
-        logger.warning('Received a command with invalid characters in it:'
-                ' "{}"'.format(cmd))
+        logger.info('Received a command from {} with invalid characters in it:'
+                ' "{}"'.format(payload['personEmail'], cmd))
         return False
 
     try:
         logger.debug('Querying Spark for room id {}'.format(msg.roomId))
         room = spark_api.rooms.get(msg.roomId)
     except SparkApiError as e:
-        msg = "The Spark API returned an error: {}".format(e)
-        logger.error(msg)
+        err = "The Spark API returned an error: {}".format(e)
+        logger.error(err)
         self.retry(exc=e)
 
     try:
@@ -97,8 +97,8 @@ def task_dispatch_spark_command(self, webhook_data):
                 .format(webhook_data['actorId']))
         caller = spark_api.people.get(webhook_data['actorId'])
     except SparkApiError as e:
-        msg = "The Spark API returned an error: {}".format(e)
-        logger.error(msg)
+        err = "The Spark API returned an error: {}".format(e)
+        logger.error(err)
         self.retry(exc=e)
 
     # strip bot's name from the start of the command
@@ -121,8 +121,8 @@ def task_dispatch_spark_command(self, webhook_data):
 
     task = dispatch_map.get(cmd.lower(), None)
     if not task:
-        logger.debug('Received an unknown command:"{}" from:{}'
-                .format(cmd, msg.personEmail))
+        logger.info('Received an unknown command from {}: "{}"'
+                .format(msg.personEmail, cmd))
         return False
 
     asynctask = task[0].apply_async(args=(*task[1],))
@@ -159,6 +159,7 @@ def task_send_spark_message(self, to, text, md=None):
             persisted. SparkApiError is re-raised to bubble the error
             down the stack.
     """
+
     if 'emails' in to:
         msg = dict(toPersonEmail=to['emails'][0])
     else:
@@ -177,8 +178,8 @@ def task_send_spark_message(self, to, text, md=None):
                         .format(msg.toPersonEmail, msg.roomId, msg.id))
         return msg.id
     except SparkApiError as e:
-        msg = "The Spark API returned an error: {}".format(e)
-        logger.error(msg)
+        err = "The Spark API returned an error: {}".format(e)
+        logger.error(err)
         self.retry(exc=e)
 
 
@@ -254,8 +255,8 @@ def task_report_zabbix_active_issues(self, room, caller, limit=10):
         logger.info('Reported active Zabbix issues to {} room "{}"'
                 .format(room['type'], room['title']))
     except SparkApiError as e:
-        msg = "The Spark API returned an error: {}".format(e)
-        logger.error(msg)
+        err = "The Spark API returned an error: {}".format(e)
+        logger.error(err)
         self.retry(exc=e)
 
 
@@ -364,8 +365,8 @@ def task_report_zabbix_server_status(self, room, caller):
         logger.info('Reported Zabbix server stats to {} room "{}"'
                 .format(room['type'], room['title']))
     except SparkApiError as e:
-        msg = "The Spark API returned an error: {}".format(e)
-        logger.error(msg)
+        err = "The Spark API returned an error: {}".format(e)
+        logger.error(err)
         self.retry(exc=e)
 
 
