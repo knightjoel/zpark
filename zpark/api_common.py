@@ -11,12 +11,18 @@ from zpark.tasks import *
 
 def authorize_webhook(webhook_data):
     """
-    Authorize webhook requests so only trusted users can issue commands.
+    Authorize webhook requests so that only trusted users can issue commands.
 
     This implementation of the authorization scheme is very basic, but
     effective for now. Crawl, walk, run. Authorization is successful if
     the 'personEmail' in the incoming webhook data is found in a list of
     trusted email addresses.
+
+    The authorization check is disabled if the list of trusted users is
+    empty.
+
+    The list of trusted users is stored in the SPARK_TRUSTED_USERS config
+    parameter.
 
     Args:
         webhook_data (dict): The JSON data that Spark POSTed to our webhook
@@ -39,7 +45,7 @@ def authorize_webhook(webhook_data):
                 .format(e))
         raise
 
-    if 'SPARK_TRUSTED_USERS' in app.config:
+    if len(app.config['SPARK_TRUSTED_USERS']) > 0:
         return caller in app.config['SPARK_TRUSTED_USERS']
     else:
         return True

@@ -121,6 +121,7 @@ access the Zpark URL, you will not be able to issue commands to the bot.
 # The following settings may optionally be configured in app.cfg
 #
 
+SPARK_TRUSTED_USERS = []
 """
 SPARK_TRUSTED_USERS
 
@@ -132,7 +133,6 @@ The list must contain the email addresses associated with the Spark users
 that are to be trusted. If this setting is commented out, the access check
 is disabled.
 """
-#SPARK_TRUSTED_USERS = ['user@domain']
 
 
 #
