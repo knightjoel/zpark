@@ -136,14 +136,14 @@ class ApiV1TestCase(ApiTestCase):
 
     def test_api_auth_token_with_token_unconfigured(self):
         """
-        Call an API endpoint with a valid token, but Zpark isn't configured
-        with a token.
+        Call an API endpoint with a valid token, but Zpark isn't explicitly
+        configured with a token (default token value is None).
 
         Expected behavior:
             - HTTP 500 status code
         """
 
-        del zpark.app.config['ZPARK_API_TOKEN']
+        zpark.app.config['ZPARK_API_TOKEN'] = None
 
         r = self.client.get(url_for('api_v1.ping'),
                              headers=[self.sb_api_token])
@@ -151,22 +151,6 @@ class ApiV1TestCase(ApiTestCase):
         zpark.app.config['ZPARK_API_TOKEN'] = self.sb_api_token
 
         self.assert_500(r)
-
-    def test_api_auth_with_token_disabled(self):
-        """
-        Call an API endpoint without a token and have the ZPARK_API_TOKEN
-        disabled.
-
-        Expected behavior:
-            - HTTP 200 status code
-        """
-
-        zpark.app.config['ZPARK_API_TOKEN'] = None
-        # no auth token here...
-        r = self.client.get(url_for('api_v1.ping'))
-        zpark.app.config['ZPARK_API_TOKEN'] = self.sb_api_token
-
-        self.assert_200(r)
 
     ### GET /alert endpoint
     def test_alert_get_w_token(self):

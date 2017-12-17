@@ -188,12 +188,9 @@ def requires_api_token(func):
         provide a Token header.
 
         Zpark must be configured with a static token in the ZPARK_API_TOKEN
-        config parameter. If this parameter is not present in the config,
-        the app will reject incoming API requests as a safety measure.
-
-        Use of the token may be disabled by setting ZPARK_API_TOKEN to None.
-        This is almost certainly not what you want and should not be done
-        unless you clearly understand what you're doing.
+        config parameter. If this parameter is set to ``None`` (which is
+        the default), the app will reject incoming API requests as a safety
+        measure.
 
         Args:
             - None
@@ -209,24 +206,23 @@ def requires_api_token(func):
         """
 
         req_token = request.headers.get('Token', None)
+        our_token = current_app.config['ZPARK_API_TOKEN']
 
-        if 'ZPARK_API_TOKEN' not in current_app.config:
+        if our_token is None:
             current_app.logger.error("Request rejected: ZPARK_API_TOKEN"
                                      " must be set in app.cfg")
             abort(500)
-        else:
-            our_token = current_app.config['ZPARK_API_TOKEN']
 
-        if not req_token and our_token is not None:
+        if req_token is None:
             current_app.logger.warning("Request rejected: client"
-                                      " did not provide a ZPARK_API_TOKEN")
+                                      " did not send a Token header")
             abort(401)
 
-        if req_token == our_token or our_token is None:
+        if req_token == our_token:
             return func(*args, **kwargs)
         else:
             current_app.logger.warning("Request rejected: Invalid"
-                                       " ZPARK_API_TOKEN received from"
+                                       " Token header received from"
                                        " client")
             abort(401)
 
