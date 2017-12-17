@@ -3,6 +3,7 @@ import sys
 
 from celery import Celery
 from ciscosparkapi import CiscoSparkAPI
+from ciscosparkapi.exceptions import ciscosparkapiException
 from flask import Flask
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 import pyzabbix
@@ -35,7 +36,13 @@ jinja2 = Environment(
     lstrip_blocks=True
 )
 
-spark_api = CiscoSparkAPI(access_token=app.config['SPARK_ACCESS_TOKEN'])
+try:
+    spark_api = CiscoSparkAPI(access_token=app.config['SPARK_ACCESS_TOKEN'])
+except ciscosparkapiException as e:
+    app.logger.critical('Unable to authenticate to the Spark API.'
+            ' Please configure/validate SPARK_ACCESS_TOKEN in app.cfg')
+    app.logger.critical('Spark communication is now disabled')
+    spark_api = None
 
 zabbix_api = pyzabbix.ZabbixAPI(app.config['ZABBIX_SERVER_URL'])
 try:
