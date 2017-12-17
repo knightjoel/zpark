@@ -8,9 +8,9 @@ from ciscosparkapi import SparkApiError
 from zpark import app, spark_api
 
 
-if 'SPARK_WEBHOOK_SECRET' not in app.config:
+if app.config['SPARK_WEBHOOK_SECRET'] is None:
     raise ValueError('Please define "SPARK_WEBHOOK_SECRET" in app.cfg')
-if 'ZPARK_SERVER_URL' not in app.config:
+if app.config['ZPARK_SERVER_URL'] is None:
     raise ValueError('Please define "ZPARK_SERVER_URL" in app.cfg')
 
 # This _should_ dynamically get the webhook URL via flask

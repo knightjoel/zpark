@@ -64,7 +64,7 @@ You can securely generate this token with the command:
 
     openssl rand 16 -hex
 """
-#SPARK_WEBHOOK_SECRET = <generate this with "openssl rand 16 -hex">
+SPARK_WEBHOOK_SECRET = None
 
 
 """
@@ -114,7 +114,7 @@ at the top level of the domain). Examples:
 This URL is used by Spark when a webhook callback is sent. If Spark can't
 access the Zpark URL, you will not be able to issue commands to the bot.
 """
-#ZPARK_SERVER_URL = 'https://your.spark.bot.url'
+ZPARK_SERVER_URL = None
 
 
 #
