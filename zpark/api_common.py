@@ -21,6 +21,9 @@ def authorize_webhook(webhook_data):
     The authorization check is disabled if the list of trusted users is
     empty.
 
+    The default list of trusted users is ``None`` which means that no users
+    are trusted.
+
     The list of trusted users is stored in the SPARK_TRUSTED_USERS config
     parameter.
 

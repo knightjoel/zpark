@@ -121,7 +121,7 @@ ZPARK_SERVER_URL = None
 # The following settings may optionally be configured in app.cfg
 #
 
-SPARK_TRUSTED_USERS = []
+SPARK_TRUSTED_USERS = [None]
 """
 SPARK_TRUSTED_USERS
 
@@ -130,8 +130,9 @@ This is an optional access control mechanism to prevent anyone and everyone
 from being able to query your Zabbix server via Zpark.
 
 The list must contain the email addresses associated with the Spark users
-that are to be trusted. If this setting is commented out, the access check
-is disabled.
+that are to be trusted.
+
+If set to an empty list, the access check is disabled.
 """
 
 

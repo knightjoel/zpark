@@ -93,7 +93,11 @@ class BaseTestCase(TestCase):
         return person
 
     def set_spark_trusted_user(self, personEmail):
-        zpark.app.config['SPARK_TRUSTED_USERS'].append(personEmail)
+        if personEmail is None:
+            # this blacklists everyone
+            zpark.app.config['SPARK_TRUSTED_USERS'] = [None]
+        else:
+            zpark.app.config['SPARK_TRUSTED_USERS'].append(personEmail)
 
 class ApiTestCase(BaseTestCase):
 
@@ -872,6 +876,32 @@ class ApiCommonTestCase(ApiTestCase):
         self.assertEqual('taskid', list(return_data.keys())[0])
         self.assertEqual(200, return_code)
         mock_task.assert_called_once()
+
+    @patch('zpark.tasks.task_dispatch_spark_command.apply_async',
+           autospec=True)
+    def test_handle_spark_webhook_authz_defaulted(self, mock_task):
+        """
+        Test the webhook handler's behavior when authorization is defaulted.
+
+        The default authz state is such that no users are trusted.
+
+        Expected behavior:
+        - UUT returns a sequence with two elements:
+            - A dict containing an error message
+            - An HTTP status code 200
+        - The task_dispatch_spark_command task (mocked) is not called
+        """
+        webhook_data = json.loads(self.build_fake_webhook_json())
+        self.set_spark_trusted_user(None)
+        webhook_data['data']['personEmail'] = 'joel@zpark'
+
+        rv = zpark.api_common.handle_spark_webhook(webhook_data)
+
+        return_data = rv[0]
+        return_code = rv[1]
+        self.assertEqual('error', list(return_data.keys())[0])
+        self.assertEqual(200, return_code)
+        self.assertFalse(mock_task.called)
 
     def test_authorize_webhook_disabled(self):
         """
