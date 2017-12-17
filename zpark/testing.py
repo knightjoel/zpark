@@ -32,10 +32,7 @@ class BaseTestCase(TestCase):
         self.sb_api_token = ('Token', zpark.app.config['ZPARK_API_TOKEN'])
         zpark.app.logger.setLevel(999)
         # disable authorization
-        try:
-            del zpark.app.config['SPARK_TRUSTED_USERS']
-        except KeyError:
-            pass
+        zpark.app.config['SPARK_TRUSTED_USERS'] = []
 
     def tearDown(self):
         pass
@@ -96,10 +93,7 @@ class BaseTestCase(TestCase):
         return person
 
     def set_spark_trusted_user(self, personEmail):
-        if not 'SPARK_TRUSTED_USERS' in zpark.app.config:
-            zpark.app.config['SPARK_TRUSTED_USERS'] = [personEmail]
-        else:
-            zpark.app.config['SPARK_TRUSTED_USERS'].append(personEmail)
+        zpark.app.config['SPARK_TRUSTED_USERS'].append(personEmail)
 
 class ApiTestCase(BaseTestCase):
 
