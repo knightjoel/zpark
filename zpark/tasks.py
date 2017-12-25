@@ -34,7 +34,7 @@ def task_dispatch_spark_command(self, webhook_data):
     the request.
 
     There is an assumption here that the API layer has checked that the
-    webhook data is for a message creation and not for any other
+    webhook data is for ``message/create`` and not for any other
     resource/event combination.
 
     Commands are case in-sensitive (makes it easier on mobile devices that
@@ -44,14 +44,16 @@ def task_dispatch_spark_command(self, webhook_data):
         webhook_data (dict): The JSON data that the Spark webhook provided.
 
     Returns:
-        False: When the command could not be dispatched.
-        True: When the command was successfully dispatched.
+        bool:
+
+            - :py:obj:`False`: When the command could not be dispatched.
+            - :py:obj:`True`: When the command was successfully dispatched.
 
     Raises:
-        SparkApiError: The Spark API returned an error and
-            despite retrying the API call some number of times, the error
-            persisted. SparkApiError is re-raised to bubble the error
-            down the stack.
+        :py:exc:`ciscosparkapi.SparkApiError`: The
+            Spark API returned an error and despite retrying the API call some
+            number of times, the error persisted.
+
     """
 
     payload = webhook_data['data']
@@ -137,27 +139,25 @@ def task_send_spark_message(self, to, text, md=None):
     """
     Send a message to a Spark destination: either a room or a person.
 
-    The function does a little introspection on the 'to' argument to
+    The function does a little introspection on the ``to`` argument to
     determine if the intended recipient is a person or a room. It then
     forms the proper data structure to pass to the Spark API.
 
     Args:
-        - to (dict): Represents either the person or the room that the
-            message will be send to. Must contain keys which would normally
-            be expected in a ciscosparkapi.Person or ciscosparkapi.Room
-            object.
-        - text (str): The text of the message to send.
-        - md (str): The message to be sent with markup formatting.
-
-    Returns:
-        - None
+        to (dict): Represents either the person or the room that the
+            message will be sent to. Must contain keys which would normally
+            be expected in a :py:obj:`ciscosparkapi.Person` or
+            :py:obj:`ciscosparkapi.Room` object. See also
+            :py:func:`obj_to_dict`.
+        text (str): The text of the message to send.
+        md (str): The message to be sent with markup formatting.
 
     Raises:
-        TypeError: If the 'to' argument is not a dict.
-        SparkApiError: The Spark API returned an error and
-            despite retrying the API call some number of times, the error
-            persisted. SparkApiError is re-raised to bubble the error
-            down the stack.
+        :py:exc:`TypeError`: If the ``to`` argument is not a :py:obj:`dict`.
+        :py:exc:`ciscosparkapi.SparkApiError`: The
+            Spark API returned an error and despite retrying the API call some
+            number of times, the error persisted.
+
     """
 
     if 'emails' in to:
@@ -189,25 +189,23 @@ def task_report_zabbix_active_issues(self, room, caller, limit=10):
     Output a list of active Zabbix issues to a Spark space.
 
     Args:
-        room: A dict that identifies the Spark space (room) where the output
-            should be sent. Note the identified room can be either a group
-            room (> 2 people) or a 1-on-1 room.
-        caller: A dict that identifies the Spark user that requested this
-            report.
-        limit: The maximum number of issues to include in the output.
-
-    Returns:
-        None
+        room: A :py:obj:`dict` that identifies the Spark space (room) where
+            the output should be sent. Note the identified room can be either
+            a group room (> 2 people) or a 1-on-1 room.
+        caller: A :py:obj:`dict` that has been built from the attributes of
+            a :py:obj:`ciscosparkapi.Person` object that identifies the Spark
+            user that requested this report. See also :py:func:`obj_to_dict`.
+        limit: An :py:obj:`int` indicating the maximum number of issues to
+            include in the output.
 
     Raises:
-        SparkApiError: The Spark API returned an error and
-            despite retrying the API call some number of times, the error
-            persisted. SparkApiError is re-raised to bubble the error
-            down the stack.
-        ZabbixAPIException: The Zabbix server API returned an error and
-            despite retrying the API call some number of times, the error
-            persisted. ZabbixAPIException is re-raised to bubble the error
-            down the stack.
+        :py:exc:`ciscosparkapi.SparkApiError`: The
+            Spark API returned an error and despite retrying the API call some
+            number of times, the error persisted.
+        :py:exc:`pyzabbix.ZabbixAPIException`: The Zabbix server API returned
+            an error and despite retrying the API call some number of times,
+            the error persisted.
+
     """
 
     try:
@@ -266,24 +264,21 @@ def task_report_zabbix_server_status(self, room, caller):
     Output the Zabbix server status as seen in the web ui dashboard.
 
     Args:
-        room: A dict that identifies the Spark space (room) where the output
-            should be sent. Note the identified room can be either a group
-            room (> 2 people) or a 1-on-1 room.
-        caller: A dict that identifies the Spark user that requested this
-            report.
-
-    Returns:
-        None
+        room: A :py:obj:`dict` that identifies the Spark space (room) where
+            the output should be sent. Note the identified room can be either
+            a group room (> 2 people) or a 1-on-1 room.
+        caller: A :py:obj:`dict` that has been built from the attributes of
+            a :py:obj:`ciscosparkapi.Person` object that identifies the Spark
+            user that requested this report. See also :py:func:`obj_to_dict`.
 
     Raises:
-        SparkApiError: The Spark API returned an error and
-            despite retrying the API call some number of times, the error
-            persisted. SparkApiError is re-raised to bubble the error
-            down the stack.
-        ZabbixAPIException: The Zabbix server API returned an error and
-            despite retrying the API call some number of times, the error
-            persisted. ZabbixAPIException is re-raised to bubble the error
-            down the stack.
+        :py:exc:`ciscosparkapi.SparkApiError`: The
+            Spark API returned an error and despite retrying the API call some
+            number of times, the error persisted.
+        :py:exc:`pyzabbix.ZabbixAPIException`: The Zabbix server API returned
+            an error and despite retrying the API call some number of times,
+            the error persisted.
+
     """
 
     stats = {}
@@ -381,15 +376,16 @@ def notify_of_failed_command(room, caller, retries, max_retries,
     not on each retry attempt of the calling task.
 
     Args:
-        room: A dict that identifies the Spark space (room) where the output
-            should be sent. Note the identified room can be either a group
-            room (> 2 people) or a 1-on-1 room.
-        caller: A dict that identifies the Spark user that requested this
-            report.
-        retries: An integer indicating the number of retry attempts that the
-            calling task has already attempted (ie, does not include the
+        room: A :py:obj:`dict` that identifies the Spark space (room) where
+            the output should be sent. Note the identified room can be either
+            a group room (> 2 people) or a 1-on-1 room.
+        caller: A :py:obj:`dict` that has been built from the attributes of
+            a :py:obj:`ciscosparkapi.Person` object that identifies the Spark
+            user that requested this report. See also :py:func:`obj_to_dict`.
+        retries: An :py:obj:`int` indicating the number of retry attempts that
+            the calling task has already attempted (ie, does not include the
             current try).
-        max_retries: An integer indicating the maximum number of retry
+        max_retries: An :py:obj:`int` indicating the maximum number of retry
             attempts that the calling task is allowed. Unintuitively, this
             function can still be called when retries == max_retries + 1;
             the calling task uses this condition to indicate it should stop
@@ -398,8 +394,6 @@ def notify_of_failed_command(room, caller, retries, max_retries,
         exc: The exception that was raised in the calling task which caused
             the need for a user notification in the first place.
 
-    Returns:
-        None
     """
 
     logger.error('There was an error responding to a command.'

@@ -127,6 +127,7 @@ class ApiV1TestCase(ApiTestCase):
 
         Expected result:
             - HTTP 401 status
+
         """
 
         # no auth token here...
@@ -377,9 +378,9 @@ class ApiV1TestCase(ApiTestCase):
         Test UUT without any contrived failure conditions.
 
         Expected results:
-        - UUT returns HTTP 200 status code
-        - UUT calls api_common.handle_spark_webhook once with the UUT input
-            JSON as a dict.
+            - UUT returns HTTP 200 status code
+            - UUT calls api_common.handle_spark_webhook once with the UUT input
+              JSON as a dict.
         """
 
         json_input = self.build_fake_webhook_json()
@@ -400,9 +401,9 @@ class ApiV1TestCase(ApiTestCase):
         authentication of the incoming request.
 
         Expected results:
-        - UUT returns HTTP 200 status code
-        - UUT calls api_common.handle_spark_webhook once with the UUT input
-            JSON as a dict.
+            - UUT returns HTTP 200 status code
+            - UUT calls api_common.handle_spark_webhook once with the UUT input
+              JSON as a dict.
         """
 
         json_input = self.build_fake_webhook_json()
@@ -430,8 +431,8 @@ class ApiV1TestCase(ApiTestCase):
         header in the POST request.
 
         Expected results:
-        - UUT returns HTTP 403 status code
-        - UUT does not call api_common.handle_spark_webhook
+            - UUT returns HTTP 403 status code
+            - UUT does not call api_common.handle_spark_webhook
         """
 
         json_input = self.build_fake_webhook_json()
@@ -456,8 +457,8 @@ class ApiV1TestCase(ApiTestCase):
         Test UUT with authentication enabled, but a mismatch in digests.
 
         Expected results:
-        - UUT returns HTTP 403 status code
-        - UUT does not call api_common.handle_spark_webhook
+            - UUT returns HTTP 403 status code
+            - UUT does not call api_common.handle_spark_webhook
         """
 
         json_input = self.build_fake_webhook_json()
@@ -481,8 +482,8 @@ class ApiV1TestCase(ApiTestCase):
         Test UUT with an artificially large content-length.
 
         Expected results:
-        - UUT returns HTTP 413 status code
-        - UUT does not call api_common.handle_spark_webhook
+            - UUT returns HTTP 413 status code
+            - UUT does not call api_common.handle_spark_webhook
         """
 
         cl = 1024 * 1024 * 5
@@ -506,8 +507,8 @@ class ApiV1TestCase(ApiTestCase):
         Test UUT with an empty content-length header.
 
         Expected results:
-        - UUT returns HTTP 400 status code
-        - UUT does not call api_common.handle_spark_webhook
+            - UUT returns HTTP 400 status code
+            - UUT does not call api_common.handle_spark_webhook
         """
 
         json_input = self.build_fake_webhook_json()
@@ -530,8 +531,8 @@ class ApiV1TestCase(ApiTestCase):
         potentially malicious user poking around).
 
         Expected results:
-        - UUT returns HTTP 400 status code
-        - UUT does not call api_common.handle_spark_webhook
+            - UUT returns HTTP 400 status code
+            - UUT does not call api_common.handle_spark_webhook
         """
 
         json_input = self.build_fake_webhook_json()
@@ -554,8 +555,8 @@ class ApiV1TestCase(ApiTestCase):
         potentially malicious user poking around).
 
         Expected results:
-        - UUT returns HTTP 400 status code
-        - UUT does not call api_common.handle_spark_webhook
+            - UUT returns HTTP 400 status code
+            - UUT does not call api_common.handle_spark_webhook
         """
 
         json_input = self.build_fake_webhook_json()
@@ -577,7 +578,7 @@ class ApiV1TestCase(ApiTestCase):
         Test UUT returns 405 on GET
 
         Expected results:
-        - UUT returns HTTP 405 status code
+            - UUT returns HTTP 405 status code
         """
 
         r = self.client.get(url_for('api_v1.webhook'))
@@ -596,10 +597,10 @@ class ApiCommonTestCase(ApiTestCase):
         occur. Authorization is also disabled.
 
         Expected behavior:
-        - The UUT returns a sequence with two elements:
-            - A dict with the correct task ID as one of its elements
-            - An HTTP status code 200
-        - The task_dispatch_spark_command task (mocked) is called once
+            - The UUT returns a sequence with two elements:
+                - A dict with the correct task ID as one of its elements
+                - An HTTP status code 200
+            - The task_dispatch_spark_command task (mocked) is called once
         """
 
         type(mock_task.return_value).id = PropertyMock(return_value='id123abc')
@@ -621,10 +622,10 @@ class ApiCommonTestCase(ApiTestCase):
         exception in this test.
 
         Expected behavior:
-        - The UUT returns a sequence with two elements:
-            - A dict that contains an error description
-            - An HTTP status code 500
-        - The task_dispatch_spark_command task (mocked) is called once
+            - The UUT returns a sequence with two elements:
+                - A dict that contains an error description
+                - An HTTP status code 500
+            - The task_dispatch_spark_command task (mocked) is called once
         """
 
         mock_task.side_effect = \
@@ -647,10 +648,10 @@ class ApiCommonTestCase(ApiTestCase):
         an invalid 'resource' attribute.
 
         Expected behavior:
-        - The UUT returns a sequence with two elements:
-            - A dict that contains an error description
-            - An HTTP status code 400
-        - The task_dispatch_spark_command task (mocked) is not called
+            - The UUT returns a sequence with two elements:
+                - A dict that contains an error description
+                - An HTTP status code 400
+            - The task_dispatch_spark_command task (mocked) is not called
         """
 
         webhook_data = json.loads(self.build_fake_webhook_json())
@@ -671,10 +672,10 @@ class ApiCommonTestCase(ApiTestCase):
         an invalid 'event' attribute.
 
         Expected behavior:
-        - The UUT returns a sequence with two elements:
-            - A dict that contains an error description
-            - An HTTP status code 400
-        - The task_dispatch_spark_command task (mocked) is not called
+            - The UUT returns a sequence with two elements:
+                - A dict that contains an error description
+                - An HTTP status code 400
+            - The task_dispatch_spark_command task (mocked) is not called
         """
 
         webhook_data = json.loads(self.build_fake_webhook_json())
@@ -695,10 +696,10 @@ class ApiCommonTestCase(ApiTestCase):
         an invalid 'resource' and event' attributes.
 
         Expected behavior:
-        - The UUT returns a sequence with two elements:
-            - A dict that contains an error description
-            - An HTTP status code 400
-        - The task_dispatch_spark_command task (mocked) is not called
+            - The UUT returns a sequence with two elements:
+                - A dict that contains an error description
+                - An HTTP status code 400
+            - The task_dispatch_spark_command task (mocked) is not called
         """
 
         webhook_data = json.loads(self.build_fake_webhook_json())
@@ -720,10 +721,10 @@ class ApiCommonTestCase(ApiTestCase):
         the 'resource' element.
 
         Expected behavior:
-        - The UUT returns a sequence with two elements:
-            - A dict that contains an error description
-            - An HTTP status code 400
-        - The task_dispatch_spark_command task (mocked) is not called
+            - The UUT returns a sequence with two elements:
+                - A dict that contains an error description
+                - An HTTP status code 400
+            - The task_dispatch_spark_command task (mocked) is not called
         """
 
         webhook_data = json.loads(self.build_fake_webhook_json())
@@ -744,10 +745,10 @@ class ApiCommonTestCase(ApiTestCase):
         the 'event' element.
 
         Expected behavior:
-        - The UUT returns a sequence with two elements:
-            - A dict that contains an error description
-            - An HTTP status code 400
-        - The task_dispatch_spark_command task (mocked) is not called
+            - The UUT returns a sequence with two elements:
+                - A dict that contains an error description
+                - An HTTP status code 400
+            - The task_dispatch_spark_command task (mocked) is not called
         """
 
         webhook_data = json.loads(self.build_fake_webhook_json())
@@ -768,10 +769,10 @@ class ApiCommonTestCase(ApiTestCase):
         multiple required elements.
 
         Expected behavior:
-        - The UUT returns a sequence with two elements:
-            - A dict that contains an error description
-            - An HTTP status code 400
-        - The task_dispatch_spark_command task (mocked) is not called
+            - The UUT returns a sequence with two elements:
+                - A dict that contains an error description
+                - An HTTP status code 400
+            - The task_dispatch_spark_command task (mocked) is not called
         """
 
         webhook_data = json.loads(self.build_fake_webhook_json())
@@ -792,10 +793,10 @@ class ApiCommonTestCase(ApiTestCase):
         Test the webhook handler's behavior when authorization succeeds.
 
         Expected behavior:
-        - UUT returns a sequence with two elements:
-            - A dict containing the task id
-            - An HTTP status code 200
-        - The task_dispatch_spark_command task (mocked) is called
+            - UUT returns a sequence with two elements:
+                - A dict containing the task id
+                - An HTTP status code 200
+            - The task_dispatch_spark_command task (mocked) is called
         """
 
         webhook_data = json.loads(self.build_fake_webhook_json())
@@ -817,10 +818,10 @@ class ApiCommonTestCase(ApiTestCase):
         Test the webhook handler's behavior when authorization fails.
 
         Expected behavior:
-        - UUT returns a sequence with two elements:
-            - A dict containing an error message
-            - An HTTP status code 200
-        - The task_dispatch_spark_command task (mocked) is not called
+            - UUT returns a sequence with two elements:
+                - A dict containing an error message
+                - An HTTP status code 200
+            - The task_dispatch_spark_command task (mocked) is not called
         """
 
         webhook_data = json.loads(self.build_fake_webhook_json())
@@ -845,10 +846,10 @@ class ApiCommonTestCase(ApiTestCase):
         setup is required.
 
         Expected behavior:
-        - UUT returns a sequence with two elements:
-            - A dict containing the task id
-            - An HTTP status code 200
-        - The task_dispatch_spark_command task (mocked) is called
+            - UUT returns a sequence with two elements:
+                - A dict containing the task id
+                - An HTTP status code 200
+            - The task_dispatch_spark_command task (mocked) is called
         """
 
         webhook_data = json.loads(self.build_fake_webhook_json())
@@ -870,10 +871,10 @@ class ApiCommonTestCase(ApiTestCase):
         The default authz state is such that no users are trusted.
 
         Expected behavior:
-        - UUT returns a sequence with two elements:
-            - A dict containing an error message
-            - An HTTP status code 200
-        - The task_dispatch_spark_command task (mocked) is not called
+            - UUT returns a sequence with two elements:
+                - A dict containing an error message
+                - An HTTP status code 200
+            - The task_dispatch_spark_command task (mocked) is not called
         """
         webhook_data = json.loads(self.build_fake_webhook_json())
         self.set_spark_trusted_user(None)
@@ -892,7 +893,7 @@ class ApiCommonTestCase(ApiTestCase):
         Test the authorization routine when authc is disabled.
 
         Expected behavior:
-        - UUT returns True
+            - UUT returns True
         """
 
         webhook_data = json.loads(self.build_fake_webhook_json())
@@ -906,7 +907,7 @@ class ApiCommonTestCase(ApiTestCase):
         found in the list of trusted users.
 
         Expected behavior:
-        - UUT returns False
+            - UUT returns False
         """
 
         self.set_spark_trusted_user('trust@zpark')
@@ -923,7 +924,7 @@ class ApiCommonTestCase(ApiTestCase):
         found in the list of trusted users.
 
         Expected behavior:
-        - UUT returns True
+            - UUT returns True
         """
 
         self.set_spark_trusted_user('trust@zpark')
@@ -940,7 +941,7 @@ class ApiCommonTestCase(ApiTestCase):
         missing some expected elements.
 
         Expected behavior:
-        - UUT raises KeyError
+            - UUT raises KeyError
         """
         webhook_data = json.loads(self.build_fake_webhook_json())
         del webhook_data['data']['personEmail']
@@ -1073,13 +1074,13 @@ class TaskTestCase(BaseTestCase):
         Report the active Zabbix issues to Spark in response to an assumed
         "show me the issues" command. This test should be successful and has
         no contrived conditions to cause a failure.
-        Expected behavior:
 
-        - Zabbix API (mock) is called once to get the list of issues
-        - Spark API (mock) is called once to output the list of issues
-        - Spark API (mock) was called with certain inputs that match the
-        (mocked) Zabbix API output
-        - task_report_zabbix_active_issues() returns None
+        Expected behavior:
+            - Zabbix API (mock) is called once to get the list of issues
+            - Spark API (mock) is called once to output the list of issues
+            - Spark API (mock) was called with certain inputs that match the
+              (mocked) Zabbix API output
+            - task_report_zabbix_active_issues() returns None
         """
         def zabbix_api_reply(*args, **kwargs):
             return [{
@@ -1114,12 +1115,12 @@ class TaskTestCase(BaseTestCase):
         Report the active Zabbix issues to Spark in response to an assumed
         "show me the issues" command. This test gets zero issues from the
         Zabbix API (mock) but should be successful otherwise.
-        Expected behavior:
 
-        - Zabbix API (mock) is called once to get the list of issues
-        - Spark API (mock) is called once to output the list of issues
-        - Spark API (mock) was called with certain inputs that match the
-        (mocked) Zabbix API output
+        Expected behavior:
+            - Zabbix API (mock) is called once to get the list of issues
+            - Spark API (mock) is called once to output the list of issues
+            - Spark API (mock) was called with certain inputs that match the
+              (mocked) Zabbix API output
         """
         def zabbix_api_reply(*args, **kwargs):
             return []
@@ -1150,12 +1151,12 @@ class TaskTestCase(BaseTestCase):
         "show me the issues" command. This test mocks the Zabbix API to
         throw an exception when the test attempts to get the list of active
         issues.
-        Expected behavior:
 
-        - task_report_zabbix_active_issues() reraises the Zabbix API
-        exception
-        - Zabbix API (mock) is called once to get the list of issues
-        - notify_of_failed_command() (mock) should be called once
+        Expected behavior:
+            - task_report_zabbix_active_issues() reraises the Zabbix API
+              exception
+            - Zabbix API (mock) is called once to get the list of issues
+            - notify_of_failed_command() (mock) should be called once
         """
         self.mock_zabbixapi.side_effect = ZabbixAPIException('error')
 
@@ -1178,14 +1179,14 @@ class TaskTestCase(BaseTestCase):
         Report the active Zabbix issues to Spark in response to an assumed
         "show me the issues" command. This test mocks the Zabbix API to
         throw an exception on the first query and 'success' on the second.
-        Expected behavior:
 
-        - task_report_zabbix_active_issues() should retry after getting the
-        exception from Zabbix
-        - The retry mock should be called with the Zabbix exception as an
-        argument
-        - Zabbix API (mock) is called once
-        - notify_of_failed_command() (mock) should be called once
+        Expected behavior:
+            - task_report_zabbix_active_issues() should retry after getting the
+              exception from Zabbix
+            - The retry mock should be called with the Zabbix exception as an
+              argument
+            - Zabbix API (mock) is called once
+            - notify_of_failed_command() (mock) should be called once
         """
 
         room = self.build_fake_room_tuple()
@@ -1215,14 +1216,14 @@ class TaskTestCase(BaseTestCase):
         Report the active Zabbix issues to Spark in response to an assumed
         "show me the issues" command. This test mocks the Spark API to
         throw an exception on the first query and 'success' on the second.
-        Expected behavior:
 
-        - task_report_zabbix_active_issues() should retry after getting the
-        exception from Zabbix
-        - The retry mock should be called with the Spark exception as an
-        argument
-        - Zabbix API (mock) is called once
-        - Spark API (mock) is called once
+        Expected behavior:
+            - task_report_zabbix_active_issues() should retry after getting the
+              exception from Zabbix
+            - The retry mock should be called with the Spark exception as an
+              argument
+            - Zabbix API (mock) is called once
+            - Spark API (mock) is called once
         """
         report_args = ('roomid123abc',
                        'direct',
@@ -1249,11 +1250,11 @@ class TaskTestCase(BaseTestCase):
         """
         Attempt notification that a bot command could not be answered right
         away but a retry is underway.
-        Expected behavior:
 
-        - notify_of_failed_command() should attempt to notify the caller
-        via Spark message that it's retrying
-        - notify_of_failed_command() returns None
+        Expected behavior:
+            - notify_of_failed_command() should attempt to notify the caller
+              via Spark message that it's retrying
+            - notify_of_failed_command() returns None
         """
         self.mock_spark_msg_create.return_value = self.build_spark_api_reply()
         room = obj_to_dict(self.build_fake_room_tuple())
@@ -1274,11 +1275,11 @@ class TaskTestCase(BaseTestCase):
         simulate a case where the notification had to be retried due to some
         sort of error and this is the second try (1st retry) at sending that
         notification.
-        Expected behavior:
 
-        - notify_of_failed_command() should do nothing on the 2nd, 3rd, etc
-        try. No Spark message should be sent.
-        - notify_of_failed_command() returns None
+        Expected behavior:
+            - notify_of_failed_command() should do nothing on the 2nd, 3rd, etc
+              try. No Spark message should be sent.
+            - notify_of_failed_command() returns None
         """
         self.mock_spark_msg_create.return_value = self.build_spark_api_reply()
         room = self.build_fake_room_tuple()
@@ -1299,11 +1300,11 @@ class TaskTestCase(BaseTestCase):
         simulate a case where the notification had to be retried due to some
         sort of error and this is the last retry before max_retries is
         exceeded.
-        Expected behavior:
 
-        - notify_of_failed_command() currently does nothing under these
-        conditions. No Spark message should be sent.
-        - notify_of_failed_command() returns None
+        Expected behavior:
+            - notify_of_failed_command() currently does nothing under these
+              conditions. No Spark message should be sent.
+            - notify_of_failed_command() returns None
         """
         self.mock_spark_msg_create.return_value = self.build_spark_api_reply()
         room = self.build_fake_room_tuple()
@@ -1323,12 +1324,12 @@ class TaskTestCase(BaseTestCase):
         """
         Attempt notification that a bot command could not be answered
         but have the Spark API throw an exception during that notification.
-        Expected behavior:
 
-        - notify_of_failed_command_spark() will re-raise the SparkApiError
-        exception
-        - task_send_spark_message.apply() will be called a single time
-        (no retries due to the mock that's in place)
+        Expected behavior:
+            - notify_of_failed_command_spark() will re-raise the SparkApiError
+              exception
+            - task_send_spark_message.apply() will be called a single time
+              (no retries due to the mock that's in place)
         """
         mock_sendmsg.side_effect = SparkApiError(409)
 
@@ -1355,9 +1356,9 @@ class TaskTestCase(BaseTestCase):
         course, we mock the task that we expect it to run.
 
         Expected behavior:
-        - UUT will return True
-        - Spark API 'messages.get' is called once
-        - Spark API 'rooms.get' is called once
+            - UUT will return True
+            - Spark API 'messages.get' is called once
+            - Spark API 'rooms.get' is called once
         """
 
         self.mock_spark_msg_get.return_value = \
@@ -1377,8 +1378,8 @@ class TaskTestCase(BaseTestCase):
         Test proper handling of an unknown command.
 
         Expected behavior:
-        - UUT returns False
-        - No task is dispatched
+            - UUT returns False
+            - No task is dispatched
         """
 
         self.mock_spark_msg_get.return_value = \
@@ -1404,9 +1405,9 @@ class TaskTestCase(BaseTestCase):
         course, we mock the task that we expect it to run.
 
         Expected behavior:
-        - UUT will return True
-        - Spark API 'messages.get' is called once
-        - Spark API 'rooms.get' is called once
+            - UUT will return True
+            - Spark API 'messages.get' is called once
+            - Spark API 'rooms.get' is called once
         """
 
         self.mock_spark_msg_get.return_value = \
@@ -1427,7 +1428,7 @@ class TaskTestCase(BaseTestCase):
         Test dispatching of command "show issues"
 
         Expected behavior:
-        - The appropriate task is fired asynchronously
+            - The appropriate task is fired asynchronously
         """
 
         self.mock_spark_people_get.return_value = \
@@ -1450,7 +1451,7 @@ class TaskTestCase(BaseTestCase):
         Test dispatching of command "show status"
 
         Expected behavior:
-        - The appropriate task is fired asynchronously
+            - The appropriate task is fired asynchronously
         """
 
         self.mock_spark_people_get.return_value = \
@@ -1476,8 +1477,8 @@ class TaskTestCase(BaseTestCase):
         checking that the expected task (mock) is dispatched.
 
         Expected behavior:
-        - The UUT returns True
-        - The appropriate task is fired asynchronously
+            - The UUT returns True
+            - The appropriate task is fired asynchronously
         """
 
         self.mock_spark_people_get.return_value = \
@@ -1506,7 +1507,7 @@ class TaskTestCase(BaseTestCase):
         doesn't bail with an "unknown command" error.
 
         Expected behavior:
-        - The appropriate task is fired asynchronously
+            - The appropriate task is fired asynchronously
         """
 
         self.mock_spark_people_get.return_value = \
@@ -1530,8 +1531,8 @@ class TaskTestCase(BaseTestCase):
         details.
 
         Expected behavior:
-        - UUT will raise SparkApiError
-        - Spark API 'messages.get' is called once
+            - UUT will raise SparkApiError
+            - Spark API 'messages.get' is called once
         """
 
         e = SparkApiError(404)
@@ -1550,10 +1551,10 @@ class TaskTestCase(BaseTestCase):
         when retrieving message details.
 
         Expected behavior:
-        - UUT will raise Retry when it encounters SparkApiError
-        - The Retry exception (mock) is called with the SparkApiError as an
-            argument
-        - A task is not dispatched
+            - UUT will raise Retry when it encounters SparkApiError
+            - The Retry exception (mock) is called with the SparkApiError as an
+                argument
+            - A task is not dispatched
         """
 
         e = SparkApiError(409)
@@ -1578,8 +1579,8 @@ class TaskTestCase(BaseTestCase):
         details.
 
         Expected behavior:
-        - UUT will raise SparkApiError
-        - Spark API 'messages.get' is called once
+            - UUT will raise SparkApiError
+            - Spark API 'messages.get' is called once
         """
 
         e = SparkApiError(404)
@@ -1601,10 +1602,10 @@ class TaskTestCase(BaseTestCase):
         when retrieving room details.
 
         Expected behavior:
-        - UUT will raise Retry when it encounters SparkApiError
-        - The Retry exception (mock) is called with the SparkApiError as an
-            argument
-        - A task is not dispatched
+            - UUT will raise Retry when it encounters SparkApiError
+            - The Retry exception (mock) is called with the SparkApiError as an
+              argument
+            - A task is not dispatched
         """
 
         e = SparkApiError(409)
@@ -1631,8 +1632,8 @@ class TaskTestCase(BaseTestCase):
         Test the UUT will reject commands that are non-alphanumeric.
 
         Expected behavior:
-        - UUT will return False
-        - A task is not dispatched
+            - UUT will return False
+            - A task is not dispatched
         """
 
         test_cmds = (
@@ -1669,9 +1670,9 @@ class TaskTestCase(BaseTestCase):
         known command.
 
         Expected behavior:
-        - UUT will return False
-        - Spark API is not queried
-        - A task is not dispatched
+            - UUT will return False
+            - Spark API is not queried
+            - A task is not dispatched
         """
 
         # 84 characters

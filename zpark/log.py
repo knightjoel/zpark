@@ -30,10 +30,8 @@ def setup_api_logging(app):
     layer.
 
     Args:
-        - app (Flask): The Flask application object.
+        app (Flask): The :py:class:`flask.Flask` application object.
 
-    Returns:
-        - None
     """
 
     # Tickle Flask to init its logger. It _appears_ as though if Flask's
@@ -86,16 +84,14 @@ def setup_celery_logging(app, celery_app, task_logger_name,
     worker layer.
 
     Args:
-        - app (Flask): The Flask application object.
-        - celery_app (Celery): The Celery application object.
-        _ task_logger_name (str): The name of our logger. This should
-            always be 'zpark.tasks' since that is the module which emits
+        app (Flask): The :py:class:`flask.Flask` application object.
+        celery_app (Celery): The :py:class:`celery.Celery` application object.
+        task_logger_name (str): The name of our logger. This should
+            always be ``zpark.tasks`` since that is the module which emits
             task log messages. This argument must match with the
-            argument to the celery.utils.log.get_task_logger() call in
-            zpark.tasks.
+            argument to the :py:func:`celery.utils.log.get_task_logger` call in
+            :py:mod:`zpark.tasks`.
 
-    Returns:
-        - None
     """
 
     import celery.app.log

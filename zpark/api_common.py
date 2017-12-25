@@ -15,30 +15,34 @@ def authorize_webhook(webhook_data):
 
     This implementation of the authorization scheme is very basic, but
     effective for now. Crawl, walk, run. Authorization is successful if
-    the 'personEmail' in the incoming webhook data is found in a list of
-    trusted email addresses.
+    the ``personEmail`` value in the incoming webhook data is found in a list
+    of trusted email addresses.
 
     The authorization check is disabled if the list of trusted users is
     empty.
 
-    The default list of trusted users is ``None`` which means that no users
-    are trusted.
+    The default list of trusted users is :py:obj:`None` which means that no
+    users are trusted.
 
-    The list of trusted users is stored in the SPARK_TRUSTED_USERS config
-    parameter.
+    The list of trusted users is stored in the
+    :py:attr:`zpark.default_settings.SPARK_TRUSTED_USERS` config parameter.
 
     Args:
         webhook_data (dict): The JSON data that Spark POSTed to our webhook
             URL.
 
     Returns:
-        True: if authorization is successful or if the list of trusted
-            users has not been configured (signalling that authorization
-            should not be used).
-        False: if authorization fails.
+        bool:
+
+            - :py:obj:`True`: If authorization is successful or if the list of
+              trusted users is empty (signalling that
+              authorization should not be used).
+            - :py:obj:`False`: If authorization fails.
 
     Raises:
-        KeyError: if the webhook_data dictionary is missing expected keys.
+        :py:exc:`KeyError`: If the ``webhook_data`` dictionary is missing
+            expected keys.
+
     """
 
     try:
@@ -70,17 +74,19 @@ def handle_spark_webhook(data):
 
     The Zpark bot only responds to webhooks sent in response to a new
     message being created and only if the actor (caller) is part of the
-    authorized list of Zpark users.
+    trusted list of Zpark users.
 
     Args:
         data (dict): The JSON data that Spark POSTed to our webhook URL.
 
     Returns:
-        A sequence which contains two elements:
-            - A dict containing some status information about how we processed
-                the webhook request.
-            - An HTTP status code which will be returned to the Spark webhook
-                client.
+        set: A two-element :py:obj:`set` which contains:
+
+            - A :py:obj:`dict` containing some status information about how we
+              processed the webhook request.
+            - An :py:obj:`int` that is the HTTP status code which will be
+              returned to the Spark webhook client.
+
     """
 
     try:
@@ -174,37 +180,36 @@ def send_spark_alert_message(sendto, subject, message):
     }
 
 def requires_api_token(func):
+    """
+    Authenticate API requests by checking for a valid token in the request.
+
+    The API token is configured in the
+    :py:attr:`zpark.default_settings.ZPARK_API_TOKEN` config parameter in
+    ``app.cfg``. A client that calls a Zpark API endpoint must pass the same
+    value as configured for :py:attr:`zpark.default_settings.ZPARK_API_TOKEN`
+    via the ``Token`` header in the HTTP request. The request is successfully
+    authenticated if the ``Token`` header value matches the
+    :py:attr:`zpark.default_settings.ZPARK_API_TOKEN` value. The request fails
+    authentication if the values differ or if the client didn't provide a
+    ``Token`` header.
+
+    Zpark **must** be configured with a static token in the
+    :py:attr:`zpark.default_settings.ZPARK_API_TOKEN` config parameter. If this
+    parameter is set to :py:obj:`None` (which is the default), the app will
+    reject incoming API requests as a safety measure.
+
+    Returns:
+
+        - This is a decorator function so it returns the wrapped function
+          when authentication is successful.
+        - When authentication fails, the decorator calls the
+          :py:func:`flask.abort` function with an appropriate HTTP status
+          code.
+
+    """
+
     @wraps(func)
     def decorated(*args, **kwargs):
-        """
-        Authenticate API requests by checking for a valid token in the request.
-
-        The API token is configured in the ZPARK_API_TOKEN config parameter
-        in app.cfg. A client that calls a Zpark API endpoint must pass the
-        same value as configured for ZPARK_API_TOKEN via the Token header
-        in the HTTP request. The request is successfully authenticated if
-        the Token header value matches the ZPARK_API_TOKEN value. The request
-        fails authentication if the values differ or if the client didn't
-        provide a Token header.
-
-        Zpark must be configured with a static token in the ZPARK_API_TOKEN
-        config parameter. If this parameter is set to ``None`` (which is
-        the default), the app will reject incoming API requests as a safety
-        measure.
-
-        Args:
-            - None
-
-        Returns:
-            - This is a decorator function so it returns the wrapped function
-                when authentication is successful.
-            - When authentication fails, the decorator calls the Flask::abort
-                function with an appropriate HTTP status code.
-
-        Throws:
-            - None
-        """
-
         req_token = request.headers.get('Token', None)
         our_token = current_app.config['ZPARK_API_TOKEN']
 

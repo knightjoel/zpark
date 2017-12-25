@@ -18,6 +18,22 @@ class Alert(Resource):
 
     @api_common.requires_api_token
     def post(self):
+        """
+        Process incoming alert notifications.
+
+        Note that this method only processes the incoming HTTP requests and
+        then hands the data to a separate method which takes the appropriate
+        actions.
+
+        Authentication of the incoming requests will be done by looking for
+        the request to contain the properly-configured token value in an
+        HTTP header. See :py:func:`zpark.api_common.requires_api_token`.
+
+        Returns:
+            dict:
+                - A :py:class:`dict` containing information about the action
+                  taken for the request.
+        """
         parser = reqparse.RequestParser()
         parser.add_argument('to', type=str, required=True,
                             location='json',
@@ -44,6 +60,22 @@ class Ping(Resource):
 
     @api_common.requires_api_token
     def get(self):
+        """
+        This is a simple method that can be used to test the API.
+
+        Note that this method only processes the incoming HTTP requests and
+        then hands the data to a separate method which takes the appropriate
+        actions.
+
+        Authentication of the incoming requests will be done by looking for
+        the reques to contain the properly-configured token value in an
+        HTTP header. See :py:func:`zpark.api_common.requires_api_token`.
+
+        Returns:
+            dict:
+                - A :py:class:`dict` containing information about the API such
+                  as the API version.
+        """
         app.logger.info("ping")
         return api_common.ping(api_version=API_VERSION)
 
@@ -53,26 +85,28 @@ class Webhook(Resource):
         """
         Process incoming webhook callbacks from the Spark service.
 
-        Authentication of the incoming callback will be done when the
-        flask 'SPARK_WEBHOOK_SECRET' config parameter is set. A callback
-        is successfully authenticated under these conditions:
+        Authentication of the incoming callback will be done by using the
+        :py:attr:`zpark.default_settings.SPARK_WEBHOOK_SECRET` config
+        parameter. A callback is successfully authenticated under these
+        conditions:
 
-            - The X-Spark-Signature header is present, and
+            - The ``X-Spark-Signature`` header is present in the webhook
+              request, and
             - The value in the header matches our computed SHA1 HMAC of
-                the request body.
+              the request body.
 
         If the callback is successfully authenticated, the JSON in the
         callback is passed to a handler routine which takes care of the
         actual request.
 
-        Args:
-            - None
-
         Returns:
-            - A two-element set containing:
-                - A dict which provides some context about how the request
-                    was processed.
-                - An int which is used as the HTTP status code.
+            set: A two-element :py:class:`set` which contains the following:
+
+                - A :py:class:`dict` which provides some context about how the
+                  request was processed.
+                - An :py:class:`int` which is used as the HTTP status code
+                  that is returned to the Spark webhook caller.
+
         """
 
         # Safety third. As recommended in the docs, prior to calling
