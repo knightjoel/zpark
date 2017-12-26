@@ -162,7 +162,7 @@ def ping(api_version):
         'utctime': str(dt.utcnow())
     }
 
-def send_spark_alert_message(sendto, subject, message):
+def send_spark_alert_message(sendto, subject, message=None):
     """
     Send a message to Spark indicating that a new Zabbix alert was received.
 
