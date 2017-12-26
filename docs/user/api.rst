@@ -32,7 +32,6 @@ zpark\.log
 
 .. automodule:: zpark.log
     :members:
-    :undoc-members:
     :show-inheritance:
 
 zpark\.tasks
