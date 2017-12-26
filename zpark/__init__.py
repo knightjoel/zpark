@@ -1,3 +1,18 @@
+"""
+Zpark is a bot that creates an integration between the `Cisco Spark`_
+messaging platform and the real-time monitoring software `Zabbix`_.
+
+Copyright (c) 2017 `Joel Knight`_
+
+User guide: `knightjoel.github.io/zpark`_.
+
+.. _`Cisco Spark`: https://www.ciscospark.com
+.. _Zabbix: https://www.zabbix.com
+.. _`Joel Knight`: https://www.packetmischief.ca
+.. _knightjoel.github.io/zpark: https://knightjoel.github.io/zpark
+
+"""
+
 import os
 import sys
 
