@@ -138,6 +138,24 @@ def handle_spark_webhook(data):
 
 
 def ping(api_version):
+    """
+    Respond to an API ping request.
+
+    The ``ping`` endpoint is meant for validating that the Zpark API service
+    is configured and operating correctly. It's safe for testing as it does
+    not emit any messages to Spark or make any third-party API calls.
+
+    Args:
+        api_version (int): The version of the Zpark API that handled the
+            request.
+
+    Returns:
+        dict: A :py:obj:`dict` which contains some basic information about
+        the API and acts as confirmtion that the request was processed
+        successfully.
+
+    """
+
     return {
         'hello': 'Hello!',
         'apiversion': api_version,
@@ -145,6 +163,23 @@ def ping(api_version):
     }
 
 def send_spark_alert_message(sendto, subject, message):
+    """
+    Send a message to Spark indicating that a new Zabbix alert was received.
+
+    This function takes the information received from Zabbix as inputs and
+    formats them into a Spark message for the given recipient.
+
+    Args:
+        sendto (str): The Spark recipient who will receive the message. The
+            value may be the email address of a Spark user which indicates the
+            recipient is a person or it may be a valid Spark room id. The
+            function will examine the value it receives and "do the right
+            thing" based on whether it's an email address or a room id.
+        subject (str): The subject of the Zabbix alert.
+        message (str): The message body of the Zabbix alert.
+
+    """
+
     # The appropriate dict needs to be passed to the task. This is a
     # reasonably reliable but not fool-proof way to determine if the
     # recipient is a user or a room.
