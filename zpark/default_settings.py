@@ -111,10 +111,6 @@ access the Zpark URL, you will not be able to issue commands to the bot.
 """
 
 
-#
-# The following settings may optionally be configured in app.cfg
-#
-
 SPARK_TRUSTED_USERS = [None]
 """
 This is a :py:class:`list` of Spark users that are allowed to send commands to
@@ -129,6 +125,10 @@ If set to an empty list (``[]``), the access check is disabled.
 The default setting treats *all* users as untrusted.
 """
 
+
+#
+# The following settings may optionally be configured in app.cfg
+#
 
 #
 # Logging configuration. Default is to log to syslog using
