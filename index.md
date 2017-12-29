@@ -482,6 +482,34 @@ For information on how alerts and actions can be customized, check out
 the sections in the [Zabbix manual](https://www.zabbix.com/manuals)
 that deal with events and notifications upon events.
 
+## Create Spark Webhooks
+
+A [webhook](https://developer.ciscospark.com/webhooks-explained.html) is what
+Spark uses to notify Zpark that a command has been issued. A webhook is just
+an HTTP POST that's sent to Zpark that contains information such as what
+the command was, who sent it, etc. If a webhook is not configured, Zpark will
+not be able to respond to any commands.
+
+There is a CLI script in the Zpark directory that will create a webhook.
+You can run this script as the `\_zpark` user:
+
+```
+% workon zpark        # activate your venvironment
+% cd /home/zpark/zpark/cli
+% python create_spark_webhook.py
+```
+
+The details of the new webhook will be displayed but that's for informational
+purposes only; you needn't record or do anything with that information.
+
+The webhook will be configured to use the URL stored in the
+`ZPARK_SERVER_URL` configuration setting which is why it's important to
+ensure the accuracy of this setting.
+
+There are additional scripts in the `cli` directory to show all configured
+webhooks (`show_spark_webhooks.py`) and delete a webhook
+(`delete_spark_webhook.py`).
+
 ## Test Notifications
 
 If everything has gone well up to this point, you're ready to test!
@@ -549,6 +577,9 @@ zparkbot show status
 Troubleshooting:
 - If the 1-on-1 room test doesn't work:
 	- Verify your nginx settings are correct as per the instructions above
+	- Verify that you've created a webhook with Spark and that it's
+	  pointing to the correct address for your Zpark vhost in nginx (use
+	  the `show_spark_webhooks.py` CLI script)
 	- Verify that the Zpark vhost in nginx is reachable from the Internet;
 	  verify necessary firewall policies are in place
 	- Check the nginx access log: ensure you can see the Spark service
