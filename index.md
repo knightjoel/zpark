@@ -454,7 +454,6 @@ On the operations tab, modify the `Default subject` and `Default
 message` settings as you see fit. Most importantly though, click the
 `New` link in the "Operations" box.
 
-XXX sync this with my current Zabbix action
 ![Zabbix action](img/zabbix_actions_operations.jpg)
 
 Click the `Add` link in the "Send to Users" box and select the Zabbix
@@ -462,7 +461,6 @@ user you created earlier. All of the other operational detail options
 can be left at defaults. Click the `Add` link once again to add the
 operation to the alert.
 
-XXX sync this with my current Zabbix action
 ![Zabbix action](img/zabbix_actions_operations_new.jpg)
 
 Click over to the "Recovery operations" tab and click the `New` link in
@@ -470,7 +468,6 @@ the "Operations" box. In the `Operation type` drop-down, select `Send
 recovery message`. Click the `Add` link once again to add the operation
 to the alert.
 
-XXX sync this with my current Zabbix action
 ![Zabbix action](img/zabbix_actions_recovery_new.jpg)
 
 Save the action by clicking on the `Add` button. The `Zpark Alert`
