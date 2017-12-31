@@ -615,5 +615,5 @@ Zpark was created by [Joel Knight](https://www.packetmischief.ca). You can
 contact Joel using any of the methods on
 [this page](https://www.packetmischief.ca/contact).
 
-Copyright (c) 2017 Joel Knight
+Copyright (c) 2017-2018 Joel Knight
 
