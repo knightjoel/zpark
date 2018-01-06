@@ -440,18 +440,27 @@ Edit the `zpark_alert.sh` file and set the following variables:
 
 - `zpark_url`
 
+	The URL that Zabbix will use to reach the Zpark API.
+
 	The fully qualified URL to your Zpark bot. This will be highly
 	dependent on how you configured nginx. Include the scheme
 	(`http` or `https`), the FQDN (`www.domain.local`) and the URI
 	(`/zpark`).
+
+	This URL needs to be reachable from the Zabbix server and can
+	be different than the `ZPARK_SERVER_URL` config parameter if
+	you're actively using different URLs for external vs internal
+	communication to Zpark.
 
 	Example:  
 	`zpark_url="https://www.your.domain/zpark"`
 
 - `zpark_api_token`
 
-	The Zpark API token. Copy and paste the value of the
-	`ZPARK_API_TOKEN` setting from the `app.cfg` file.
+	The Zpark API token.
+
+	Copy and paste the value of the `ZPARK_API_TOKEN` setting from the
+	`app.cfg` file.
 
 	Example:  
 	`zpark_api_token="e0c297f5....5l2j2"`
