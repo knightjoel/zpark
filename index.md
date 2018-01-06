@@ -82,6 +82,13 @@ The Zpark software requires the following protocols/ports to operate:
 	- Again, if Zpark and Zabbix are on the same server, this
 	  will be loopback traffic. Otherwise, over the network.
 
+## Block Diagram
+
+In order to provide some context to all the detail you're about to read,
+here's an architecture diagram showing how all the pieces fit together.
+
+![Zpark Block Diagram](/img/zpark_block_diagram.jpg)
+
 # Installation
 
 The following sections will describe how to install Zpark and get it up
