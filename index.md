@@ -112,9 +112,9 @@ The following sections will describe how to install Zpark and get it up
 and running.
 
 **Before beginning**, please ensure the system and software requirements
-above are satisified by installing all necessary software packages as
+above are satisfied by installing all necessary software packages as
 per whatever method your UNIX-like operating system uses. Instructions
-for install the Python modules are below.
+for installing the Python modules are below.
 
 ## Create a Spark User Account and Bot Account
 
@@ -249,7 +249,7 @@ The following settings **must** be configured:
 	Example (for RabbitMQ):  
 	`CELERY_BROKER_URL = 'ampq://user:pass@hostname/vhost'`
 
-- `ZPARK_SERVER_URL`
+- `ZABBIX_SERVER_URL`
 
 	Fully-qualified URL to Zabbix
 
@@ -258,11 +258,11 @@ The following settings **must** be configured:
 	and the directory if applicable.
 
 	Example:  
-	`ZPARK_SERVER_URL = http://zabbix.your.domain/zabbix`
+	`ZABBIX_SERVER_URL = http://zabbix.your.domain/zabbix`
 
 - `ZABBIX_USERNAME`
 
-	Zabbix Account Username
+	Zabbix account username
 
 	The username for an account with access to the Zabbix API. This is
 	the account that Zpark will use to communicate with Zabbix.
@@ -493,7 +493,7 @@ ensure `Auto-login` is off and set a password on the account.
 
 ![Zabbix new user](img/zabbix_users_newuser.jpg)
 
-Click over to the `Media` tab and click `Add` (inside the `Media` box;
+Click over to the `Media` tab and click `Add` (inside the `Media` box,
 not on the button). Choose `Zpark` in the dropdown and then set the `Send
 to` field to the email address that you use to sign into your Cisco
 Spark account. It's important this field is correct otherwise the bot
@@ -551,9 +551,9 @@ A [webhook](https://developer.ciscospark.com/webhooks-explained.html) is what
 Spark uses to notify Zpark that a command has been issued. A webhook is just
 an HTTP POST that's sent to Zpark that contains information such as what
 the command was, who sent it, etc. If a webhook is not configured, Zpark will
-not be able to respond to any commands.
+not be able to respond to any commands issued by Spark users.
 
-There is a CLI script in the Zpark directory that will create a webhook.
+There is a CLI script that comes with Zpark that will create a webhook.
 You can run this script as the `_zpark` user:
 
 ```
