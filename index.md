@@ -69,7 +69,7 @@ and reports from Zabbix.
 
 - A message broker that is compatible with the [Celery
 library](http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html)
-	- *This document assumes [Rabbitmq](https://www.rabbitmq.com/)*
+	- *This document assumes [RabbitMQ](https://www.rabbitmq.com/)*
 - The [curl](https://curl.haxx.se/) command line tool
 - The [jo](https://github.com/jpmens/jo) command line tool for
   parsing/building JSON documents
