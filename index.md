@@ -14,6 +14,23 @@ and reports from Zabbix.
 
 ![Example Zpark Command](/img/zpark_example_command.jpg)
 
+## Table of Contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+	- [Create a Spark User Account and Bot Account](#create-a-spark-user-account-and-bot-account)
+	- [Download and Configure Zpark](#download-and-configure-zpark)
+	- [Configure RabbitMQ](#configure-rabbitmq)
+	- [Configure Gunicorn and nginx](#configure-gunicorn-and-nginx)
+	- [Install the Alert Script on the Zabbix Server](#install-the-alert-script-on-the-zabbix-server)
+	- [Configure Zabbix](#configure-zabbix)
+	- [Create Spark Webhooks](#create-spark-webhooks)
+- [Test Notifications](#test-notifications)
+- [Test Bot Commands](#test-bot-commands)
+- [Zpark Commands](#zpark-commands)
+- [About](#about)
+
 ## Features
 
 - Relays new Zabbix alerts (which are generated from Zabbix events) to Spark
@@ -556,7 +573,7 @@ There are additional scripts in the `cli` directory to show all configured
 webhooks (`show_spark_webhooks.py`) and delete a webhook
 (`delete_spark_webhook.py`).
 
-## Test Notifications
+# Test Notifications
 
 If everything has gone well up to this point, you're ready to test!
 Before you start:
@@ -596,7 +613,7 @@ and shortly after that you should receive a new direct message from the
 Zpark bot informing you of the alarm. Delete the `/tmp/zparktest` file
 and the bot will soon notify you that the alarm has cleared.
 
-## Test Bot Commands
+# Test Bot Commands
 
 Test that Zpark will respond to your commands by starting a 1-on-1 Spark
 conversation with the bot and issuing a command such as `show status`. Zpark
@@ -638,7 +655,7 @@ If the 1-on-1 room test works but the multi-person room does not:
 - *The problem is almost certainly in how you're communicating with the
   bot and not something on the server since the 1-on-1 test was successful*
 
-## Zpark Commands
+# Zpark Commands
 
 This is a list of commands that Zpark supports:
 
@@ -652,7 +669,7 @@ This is a list of commands that Zpark supports:
 	Show Zabbix status, including number of hosts, items, and triggers,
 	the same as what's displayed on the Zabbix web dashboard.
 
-## About
+# About
 
 Zpark was created by [Joel Knight](https://www.packetmischief.ca). You can
 contact Joel using any of the methods on
