@@ -37,7 +37,8 @@ and reports from Zabbix.
 
 ## Requirements
 
-System requirements:
+#### System Requirements
+
 - A UNIX-like operating system with a sane `/bin/sh` shell
 - [Python](https://www.python.org) 3
 	- *Python 2.7 is not supported*
@@ -47,7 +48,8 @@ System requirements:
 	- *This document assumes
 	  [Supervisor](http://supervisord.org/)*
 
-Third-party software requirements:
+#### Third-party Software Requirements
+
 - A message broker that is compatible with the [Celery
 library](http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html)
 	- *This document assumes [Rabbitmq](https://www.rabbitmq.com/)*
@@ -57,6 +59,28 @@ library](http://docs.celeryproject.org/en/latest/getting-started/brokers/index.h
 - The Python modules listed in the `requirements.txt` file inside the
   Zpark program directory
 	- *See below for how to install these modules*
+
+#### Network Requirements
+
+The Zpark software requires the following protocols/ports to operate:
+- tcp/443 **outbound** to the Internet.
+	- There is no official list of Spark IP address ranges so the only
+	  reliable way to reach Spark is to not filter outbound access.
+- tcp/80 or tcp/443 **outbound** to the Zabbix server.
+	- If Zpark and Zabbix are running on the same server, then
+	  this communication would be over a loopback interface.
+	  Otherwise, this communication is over the network.
+- tcp/80 or tcp/443 or tcp/NN **inbound** from the Spark cloud.
+	- The TCP port used for inbound communication could be the
+	  standard 80 or 443 or it could be an arbitrary port assigned
+	  to the Zpark vhost in the web server.
+	  This port must be open to the Internet. I know that is
+	  scary so there are security mitigations in Zpark to make this
+	  less scary. See the
+	  `SPARK_WEBHOOK_SECRET` configuration parameter.
+- tcp/80 or tcp/443 or tcp/NN **inbound** from the Zabbix server.
+	- Again, if Zpark and Zabbix are on the same server, this
+	  will be loopback traffic. Otherwise, over the network.
 
 # Installation
 
