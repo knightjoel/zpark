@@ -41,8 +41,9 @@ and reports from Zabbix.
   severity, time of day, host group, or other arbitrary criteria. eg:
 	- Send all alerts to the Spark room "Network Engineers" between
 	  0800-2000 Mon-Fri
-	- Send alerts with severity "critical" or higher to engineers
-	  "Joe", "Jill", and "Mark" 24x7
+	- Send alerts with severity "critical" or higher to engineers Joe,
+	  Jill, and Mark 24x7, using their Spark accounts "joe@example.com",
+	  "jill@example.com" and "mark@example.com".
 - Immediate notification of alerts. As soon as the bot receives an alert
   from Zabbix, it is immediately sent to Spark; there is no queueing or
   batching of messages.
