@@ -37,7 +37,6 @@ and reports from Zabbix.
   user(s) and/or room(s).
 - Relays Zabbix "all clear" alerts (which are generated when a recovery
   condition is met) to Spark user(s) and/or room(s).
-	- *Requires Zabbix 3.4*
 - Configure Spark message recipients based on a combination of alert
   severity, time of day, host group, or other arbitrary criteria. eg:
 	- Send all alerts to the Spark room "Network Engineers" between
