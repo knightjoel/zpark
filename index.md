@@ -502,6 +502,15 @@ you already have a Zabbix user account that you want to add Spark
 notifications to, just skip the part about adding a new account and jump
 to the part about adding new media to the user.
 
+If you want Zpark notifications to be sent to a Spark room, still go
+ahead and create a Zabbix user per the instructions below. Since Zabbix
+sends alerts to its "users", you'll have to create a user to represent
+the Spark room.
+
+If you want Zpark notifications to be sent to multiple users, multiple
+rooms, or a combination of both, create 1 Zabbix user for *each
+user/room*.
+
 Create the Zabbix user by navigating to Administration > Users. Choose
 to "create user" and add them to the appropriate group(s). If this
 account is for notification only and not meant to be a login account to
@@ -512,10 +521,36 @@ ensure `Auto-login` is off and set a password on the account.
 
 Click over to the `Media` tab and click `Add` (inside the `Media` box,
 not on the button). Choose `Zpark` in the dropdown and then set the `Send
-to` field to the email address that you use to sign into your Cisco
-Spark account. It's important this field is correct otherwise the bot
-will not be able to send you any messages. Optionally, modify the
-schedule and severity information.
+to` field to the email address that your user uses to sign into their Cisco
+Spark account. It's important this field is correct otherwise the user
+will not receive any messages.
+
+To setup notifications to a Spark room, you need to fill the `Send to`
+field with the unique `roomId` for the room. The `roomId` isn't exposed
+in the Spark client, so follow these steps to retrieve it:
+
+1. In your Spark client, add your Zpark bot to the room that you want
+   to receive notifications in.
+2. Go to the CLI on the server where Zpark is running and execute the
+   `show_spark_rooms.py` script:
+
+```
+% workon zpark        # activate your venvironment
+% cd /home/zpark/zpark
+% python cli/show_spark_rooms.py
+Zpark has been invited to the following Spark rooms:
+
+"My Zpark Room"
+roomId: Y2lz......
+```
+
+3. Copy and paste the `roomId` value into the `Send to` field in the
+   Zabbix UI.
+4. Create a new Zabbix user and repeat steps 1-3 for *each room* that you
+   want to receive notifications in.
+
+When you've finished with the email address or room ID for the user, you
+may optionally modify the schedule and severity information.
 
 ![Zabbix new user](img/zabbix_add_media_to_user.jpg)
 
