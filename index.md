@@ -534,15 +534,15 @@ in the Spark client, so follow these steps to retrieve it:
 2. Go to the CLI on the server where Zpark is running and execute the
    `show_spark_rooms.py` script:
 
-```
-% workon zpark        # activate your venvironment
-% cd /home/zpark/zpark
-% python cli/show_spark_rooms.py
-Zpark has been invited to the following Spark rooms:
-
-"My Zpark Room"
-roomId: Y2lz......
-```
+	```
+	% workon zpark        # activate your venvironment
+	% cd /home/zpark/zpark
+	% python cli/show_spark_rooms.py
+	Zpark has been invited to the following Spark rooms:
+	
+	"My Zpark Room"
+	roomId: Y2lz......
+	```
 
 3. Copy and paste the `roomId` value into the `Send to` field in the
    Zabbix UI.
