@@ -813,6 +813,31 @@ class ApiCommonTestCase(ApiTestCase):
 
     @patch('zpark.tasks.task_dispatch_spark_command.apply_async',
            autospec=True)
+    def test_handle_spark_webhook_good_authz_at_domain(self, mock_task):
+        """
+        Test the webhook handler's behavior when given an '@domain.com' input
+
+        Expected behavior:
+            - UUT returns a sequence with two elements:
+                - A dict containing the task id
+                - An HTTP status code 200
+            - The task_dispatch_spark_command task (mocked) is called
+        """
+
+        webhook_data = json.loads(self.build_fake_webhook_json())
+        self.set_spark_trusted_user('@zpark.testing')
+        webhook_data['data']['personEmail'] = 'trust@zpark.testing'
+
+        rv = zpark.api_common.handle_spark_webhook(webhook_data)
+
+        return_data = rv[0]
+        return_code = rv[1]
+        self.assertEqual('taskid', list(return_data.keys())[0])
+        self.assertEqual(200, return_code)
+        mock_task.assert_called_once()
+
+    @patch('zpark.tasks.task_dispatch_spark_command.apply_async',
+           autospec=True)
     def test_handle_spark_webhook_fail_authz(self, mock_task):
         """
         Test the webhook handler's behavior when authorization fails.

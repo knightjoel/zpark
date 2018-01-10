@@ -118,7 +118,11 @@ Zpark. This is an optional access control mechanism to limit which Spark users
 are able to query your Zabbix server via Zpark.
 
 The list must contain the email addresses associated with the Spark users
-that are to be trusted.
+that are to be trusted or may contain a list of domains in the format of
+``@domain.com`` that are to be trusted. The list may contain a mix of
+email addresses and domains. Example::
+
+    SPARK_TRUSTED_USERS = ['user@example.com', '@example.org']
 
 If set to an empty list (``[]``), the access check is disabled.
 

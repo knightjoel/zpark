@@ -16,7 +16,9 @@ def authorize_webhook(webhook_data):
     This implementation of the authorization scheme is very basic, but
     effective for now. Crawl, walk, run. Authorization is successful if
     the ``personEmail`` value in the incoming webhook data is found in a list
-    of trusted email addresses.
+    of trusted email addresses or if the domain part of the ``personEmail``
+    (ie, everything to the right of and including the ``@`` character) is
+    found in the same trusted list.
 
     The authorization check is disabled if the list of trusted users is
     empty.
@@ -24,7 +26,7 @@ def authorize_webhook(webhook_data):
     The default list of trusted users is :py:obj:`None` which means that no
     users are trusted.
 
-    The list of trusted users is stored in the
+    The list of trusted users and domains is stored in the
     :py:attr:`zpark.default_settings.SPARK_TRUSTED_USERS` config parameter.
 
     Args:
@@ -53,7 +55,9 @@ def authorize_webhook(webhook_data):
         raise
 
     if len(app.config['SPARK_TRUSTED_USERS']) > 0:
-        return caller in app.config['SPARK_TRUSTED_USERS']
+        domain = '@' + caller.rsplit('@', 1)[1]
+        return (caller in app.config['SPARK_TRUSTED_USERS']
+                or domain in app.config['SPARK_TRUSTED_USERS'])
     else:
         return True
 
