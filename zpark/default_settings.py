@@ -127,6 +127,9 @@ email addresses and domains. Example::
 If set to an empty list (``[]``), the access check is disabled.
 
 The default setting treats *all* users as untrusted.
+
+.. versionchanged:: 1.1.0
+   Specifying domain names became supported.
 """
 
 
