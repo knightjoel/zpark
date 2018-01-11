@@ -161,7 +161,7 @@ As the `_zpark` user, clone the Zpark git repo into `/home/zpark`:
 ```
 
 If you aren't a git user or don't have git installed, you can also [download
-a zip archive](https://github.com/knightjoel/zpark/archive/master.zip).
+the latest release](https://github.com/knightjoel/zpark/releases).
 
 This is optional but highly recommended: use the Python
 [virtualenv](https://virtualenv.pypa.io/en/stable/) tool to create an
