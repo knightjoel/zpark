@@ -73,31 +73,9 @@ def task_dispatch_spark_command(self, webhook_data):
         logger.error(err)
         self.retry(exc=e)
 
-    cmd = msg.text
-    if len(cmd) > 79:
-        logger.info('Received a command from {} that is too long:'
-                ' allowed chars: 79, received chars: {}. Ignoring.'
-                .format(payload['personEmail'], len(cmd)))
-        return False
-
-    # validate the command looks sane and safe
-    if not re.fullmatch('^[a-zA-Z0-9 ]+$', cmd):
-        logger.info('Received a command from {} with invalid characters in it:'
-                ' "{}"'.format(payload['personEmail'], cmd))
-        return False
-
     try:
         logger.debug('Querying Spark for room id {}'.format(msg.roomId))
         room = spark_api.rooms.get(msg.roomId)
-    except SparkApiError as e:
-        err = "The Spark API returned an error: {}".format(e)
-        logger.error(err)
-        self.retry(exc=e)
-
-    try:
-        logger.debug('Querying Spark for person id {}'
-                .format(webhook_data['actorId']))
-        caller = spark_api.people.get(webhook_data['actorId'])
     except SparkApiError as e:
         err = "The Spark API returned an error: {}".format(e)
         logger.error(err)
@@ -119,7 +97,7 @@ def task_dispatch_spark_command(self, webhook_data):
             # of the plain text version of the message. use the plain text
             # version so we don't have to worry about additional markup
             # in the message. what's left will be the bot command.
-            cmd = re.split('^' + bot_name + '\s*', msg.text, 1)[1]
+            cmd = re.split('^' + bot_name + '[,:;]*\s*', msg.text, 1)[1]
         else:
             logger.info('Received a message from {} in group room "{}"'
                         ' that did not contain the spark-mention tag.'
@@ -127,6 +105,30 @@ def task_dispatch_spark_command(self, webhook_data):
                         ' issue?'
                     .format(msg.personEmail, room.title))
             return False
+    # in a 1-on-1 room, we'll just receive the command, no mention
+    else:
+        cmd = msg.text
+
+    if len(cmd) > 79:
+        logger.info('Received a command from {} that is too long:'
+                ' allowed chars: 79, received chars: {}. Ignoring.'
+                .format(payload['personEmail'], len(cmd)))
+        return False
+
+    # validate the command looks sane and safe
+    if not re.fullmatch('^[a-zA-Z0-9 ]+$', cmd):
+        logger.info('Received a command from {} with invalid characters in it:'
+                ' "{}"'.format(payload['personEmail'], cmd))
+        return False
+
+    try:
+        logger.debug('Querying Spark for person id {}'
+                .format(webhook_data['actorId']))
+        caller = spark_api.people.get(webhook_data['actorId'])
+    except SparkApiError as e:
+        err = "The Spark API returned an error: {}".format(e)
+        logger.error(err)
+        self.retry(exc=e)
 
     room_dict = obj_to_dict(room)
     caller_dict = obj_to_dict(caller)

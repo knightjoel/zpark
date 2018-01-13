@@ -1451,6 +1451,45 @@ class TaskTestCase(BaseTestCase):
         self.mock_spark_msg_get.assert_called_once()
         self.mock_spark_rooms_get.assert_called_once()
 
+    @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
+    def test_task_dispatch_spark_command_with_delimiters(self, mock_task):
+        """
+        Test the UUT can handle commands received in a group room with
+        various delimiting characters between the bot name and the command.
+
+        Note this test does NOT check that the command was actually
+        dispatched. There are individual tests that check each command
+        is dispatched properly. This test just checks the stuff that leads
+        up to actual dispatch. However, in order for the UUT to run its
+        course, we mock the task that we expect it to run.
+
+        Expected behavior:
+            - UUT will return True
+            - Spark API 'messages.get' is called once
+            - Spark API 'rooms.get' is called once
+        """
+
+        delim = ['', ' ',
+                 ',', ', ',
+                 ';', '; ',
+                 ':', ': ']
+
+        for d in delim:
+            txt = 'Zpark' + d + 'show issues'
+            html=('<spark-mention data-object-type=\"person\"'
+                 ' data-object-id=\"13579\">Zpark'
+                 '</spark-mention>{}show issues'.format(d))
+
+            self.mock_spark_msg_get.return_value = \
+                    self.build_fake_webhook_msg_tuple(text=txt, html=html)
+            self.mock_spark_rooms_get.return_value = \
+                    self.build_fake_room_tuple()
+            webhook_data = json.loads(self.build_fake_webhook_json())
+
+            rv = zpark.tasks.task_dispatch_spark_command(webhook_data)
+
+            self.assertTrue(rv, "Failed with delim '{}'".format(d))
+
 
     @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
     def test_task_dispatch_spark_command_show_issues(self, mock_task):
@@ -1747,6 +1786,7 @@ class TaskTestCase(BaseTestCase):
         webhook_data = json.loads(self.build_fake_webhook_json())
 
         for c in test_cmds:
+            c = 'Zpark ' + c
             self.mock_spark_msg_get.return_value = \
                     self.build_fake_webhook_msg_tuple(text=c)
             rv = zpark.tasks.task_dispatch_spark_command(webhook_data)
@@ -1763,18 +1803,17 @@ class TaskTestCase(BaseTestCase):
         The UUT could throw a false positive at us because we're generating
         a bogus command that doesn't actually exist, so the UUT will bail
         at the point it discovers this. To catch this, we check that the
-        Spark API methods were not called which should be a good indication
-        that the UUT stopped higher up, well before the check for a
-        known command.
+        Spark API method 'people.get' was not called which should be a good
+        indication that the UUT stopped at the expected spot.
 
         Expected behavior:
             - UUT will return False
-            - Spark API is not queried
+            - Spark people API is not queried
             - A task is not dispatched
         """
 
-        # 84 characters
-        test_cmd = 'show' + ' run' * 20
+        # command is 104 characters
+        test_cmd = 'Zpark show' + ' run' * 25
 
         self.mock_spark_rooms_get.return_value = self.build_fake_room_tuple()
         webhook_data = json.loads(self.build_fake_webhook_json())
@@ -1784,7 +1823,6 @@ class TaskTestCase(BaseTestCase):
         rv = zpark.tasks.task_dispatch_spark_command(webhook_data)
 
         self.assertFalse(rv)
-        self.assertFalse(self.mock_spark_rooms_get.called)
         self.assertFalse(self.mock_spark_people_get.called)
         self.assertFalse(mock_task.called)
 
