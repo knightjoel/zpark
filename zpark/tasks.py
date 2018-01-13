@@ -81,7 +81,7 @@ def task_dispatch_spark_command(self, webhook_data):
         return False
 
     # validate the command looks sane and safe
-    if not re.fullmatch('^[a-zA-Z0-9 ]+$', msg.text):
+    if not re.fullmatch('^[a-zA-Z0-9 ]+$', cmd):
         logger.info('Received a command from {} with invalid characters in it:'
                 ' "{}"'.format(payload['personEmail'], cmd))
         return False
@@ -103,9 +103,30 @@ def task_dispatch_spark_command(self, webhook_data):
         logger.error(err)
         self.retry(exc=e)
 
-    # strip bot's name from the start of the command
+    # strip bot's name from the start of the command if the message was
+    # received in a group room (this is an artifact of how Spark works).
     if room.type == 'group':
-        cmd = re.split('[^a-zA-Z0-9]+', cmd, 1)[1]
+        # the marked-up version of the message wraps the bot name in
+        # <spark-mention> tags which makes it easy for us to find out
+        # our own name dynamically. note the limitation with this is that
+        # we expect the bot to be the first and only person mentioned in
+        # the message.
+        m = (re.match('^<spark-mention[^>]+>([^<]+)<\/spark-mention>',
+                      msg.html))
+        if m is not None:
+            bot_name = m.group(1)
+            # strip bot name and some delimiting characters from the start
+            # of the plain text version of the message. use the plain text
+            # version so we don't have to worry about additional markup
+            # in the message. what's left will be the bot command.
+            cmd = re.split('^' + bot_name + '\s*', msg.text, 1)[1]
+        else:
+            logger.info('Received a message from {} in group room "{}"'
+                        ' that did not contain the spark-mention tag.'
+                        ' The command is being ignored. Possible Spark'
+                        ' issue?'
+                    .format(msg.personEmail, room.title))
+            return False
 
     room_dict = obj_to_dict(room)
     caller_dict = obj_to_dict(caller)
