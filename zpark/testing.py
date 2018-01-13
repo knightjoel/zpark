@@ -61,15 +61,17 @@ class BaseTestCase(TestCase):
   }
 }"""
 
-    def build_fake_webhook_msg_tuple(self, text=None):
-        t = namedtuple('msg', 'id roomId roomType text personId personEmail')
+    def build_fake_webhook_msg_tuple(self, text=None, html=None):
+        t = namedtuple('msg', 'id roomId roomType text personId personEmail \
+                       html')
         return t(
             id='msgid12345',
             roomId='roomid12345',
             roomType='group',
             text=text or 'Zpark show issues',
             personId='personid12345',
-            personEmail='joel@zpark.packetmischief'
+            personEmail='joel@zpark.packetmischief',
+            html=html or '<spark-mention data-object-type=\"person\" data-object-id=\"13579\">Zpark</spark-mention> show issues'
         )
 
     def build_fake_room_tuple(self, roomType=None):
@@ -1409,7 +1411,10 @@ class TaskTestCase(BaseTestCase):
 
         self.mock_spark_msg_get.return_value = \
                 self.build_fake_webhook_msg_tuple(
-                        text='sudo make me a sandwich')
+                        text='Zpark sudo make me a sandwich',
+                        html='<spark-mention data-object-type=\"person\"'
+                             ' data-object-id=\"13579\">Zpark</spark-mention>'
+                             ' sudo make me a sandwich')
         self.mock_spark_rooms_get.return_value = self.build_fake_room_tuple()
         webhook_data = json.loads(self.build_fake_webhook_json())
 
@@ -1531,6 +1536,9 @@ class TaskTestCase(BaseTestCase):
         checking that the expected task (mock) is dispatched and the UUT
         doesn't bail with an "unknown command" error.
 
+        This test mocks a command sent to a bot with a single word in its
+        name ("Zpark").
+
         Expected behavior:
             - The appropriate task is fired asynchronously
         """
@@ -1549,6 +1557,71 @@ class TaskTestCase(BaseTestCase):
         mock_task.assert_called_once_with(args=(
             obj_to_dict(self.mock_spark_rooms_get.return_value),
             obj_to_dict(self.mock_spark_people_get.return_value)))
+
+    @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
+    def test_task_dispatch_spark_command_group_2(self, mock_task):
+        """
+        Test dispatching of commands received in a 'group' room.
+
+        Commands in a group room have the bot's name prefixed onto
+        the text of the command. Ensure the UUT accounts for that by
+        checking that the expected task (mock) is dispatched and the UUT
+        doesn't bail with an "unknown command" error.
+
+        This test mocks a command sent to a bot with two words in its
+        name ("Zpark Bot").
+
+        Expected behavior:
+            - The appropriate task is fired asynchronously
+        """
+
+        self.mock_spark_people_get.return_value = \
+                self.build_fake_person_tuple()
+        self.mock_spark_msg_get.return_value = \
+                self.build_fake_webhook_msg_tuple(
+                        text='Zpark Bot show issues',
+                        html='<spark-mention data-object-type=\"person\"'
+                             ' data-object-id=\"13579\">Zpark Bot'
+                             ' </spark-mention> show issues')
+        self.mock_spark_rooms_get.return_value = \
+                self.build_fake_room_tuple(roomType='group')
+        webhook_data = json.loads(self.build_fake_webhook_json())
+
+        rv = zpark.tasks.task_dispatch_spark_command(webhook_data)
+
+        self.assertTrue(rv)
+        mock_task.assert_called_once_with(args=(
+            obj_to_dict(self.mock_spark_rooms_get.return_value),
+            obj_to_dict(self.mock_spark_people_get.return_value)))
+
+    @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
+    def test_task_dispatch_spark_command_group_no_mention(self, mock_task):
+        """
+        Test handling of a group message that does not include a mention
+        of the bot's name.
+
+        This condition shouldn't ever happen and if it does, would indicate
+        something is wrong with Spark. We should only ever receive a
+        webhook callback for a message that we're explicitly mentioned in.
+
+        Expected behavior:
+            - UUT returns False because it will errouneously parse the message
+              text and end up looking for an unknown command
+            - No task is dispatched
+        """
+
+        self.mock_spark_msg_get.return_value = \
+                self.build_fake_webhook_msg_tuple(
+                        text='show issues',
+                        # html element is missing the spark-mention tag
+                        html='show issues')
+        self.mock_spark_rooms_get.return_value = self.build_fake_room_tuple()
+        webhook_data = json.loads(self.build_fake_webhook_json())
+
+        rv = zpark.tasks.task_dispatch_spark_command(webhook_data)
+
+        self.assertFalse(rv)
+        self.assertFalse(mock_task.called)
 
     def test_task_dispatch_spark_command_spark_fail_msg(self):
         """
