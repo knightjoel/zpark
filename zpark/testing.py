@@ -71,7 +71,7 @@ class BaseTestCase(TestCase):
             text=text or 'Zpark show issues',
             personId='personid12345',
             personEmail='joel@zpark.packetmischief',
-            html=html or '<spark-mention data-object-type=\"person\" data-object-id=\"13579\">Zpark</spark-mention> show issues'
+            html=html or '<p><spark-mention data-object-type=\"person\" data-object-id=\"13579\">Zpark</spark-mention> show issues</p>'
         )
 
     def build_fake_room_tuple(self, roomType=None):
@@ -1412,9 +1412,9 @@ class TaskTestCase(BaseTestCase):
         self.mock_spark_msg_get.return_value = \
                 self.build_fake_webhook_msg_tuple(
                         text='Zpark sudo make me a sandwich',
-                        html='<spark-mention data-object-type=\"person\"'
+                        html='<p><spark-mention data-object-type=\"person\"'
                              ' data-object-id=\"13579\">Zpark</spark-mention>'
-                             ' sudo make me a sandwich')
+                             ' sudo make me a sandwich</p>')
         self.mock_spark_rooms_get.return_value = self.build_fake_room_tuple()
         webhook_data = json.loads(self.build_fake_webhook_json())
 
@@ -1619,9 +1619,9 @@ class TaskTestCase(BaseTestCase):
         self.mock_spark_msg_get.return_value = \
                 self.build_fake_webhook_msg_tuple(
                         text='Zpark Bot show issues',
-                        html='<spark-mention data-object-type=\"person\"'
+                        html='<p><spark-mention data-object-type=\"person\"'
                              ' data-object-id=\"13579\">Zpark Bot'
-                             ' </spark-mention> show issues')
+                             ' </spark-mention> show issues</p>')
         self.mock_spark_rooms_get.return_value = \
                 self.build_fake_room_tuple(roomType='group')
         webhook_data = json.loads(self.build_fake_webhook_json())
