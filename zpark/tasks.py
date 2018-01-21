@@ -110,11 +110,13 @@ def task_dispatch_spark_command(self, webhook_data):
         # <spark-mention> tags which makes it easy for us to find out
         # our own name dynamically. note the limitation with this is that
         # we expect the bot to be the first and only person mentioned in
-        # the message.
-        m = (re.match('^<spark-mention[^>]+>([^<]+)<\/spark-mention>',
+        # the message. testing reveals that spark prefixes the <spark-mention>
+        # tag with a <p> tag, so account for that and any additional tags as
+        # well.
+        m = (re.match('^(<[^>]+>)*<spark-mention[^>]+>([^<]+)<\/spark-mention>',
                       msg.html))
         if m is not None:
-            bot_name = m.group(1)
+            bot_name = m.group(2)
             # strip bot name and some delimiting characters from the start
             # of the plain text version of the message. use the plain text
             # version so we don't have to worry about additional markup
