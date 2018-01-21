@@ -137,6 +137,19 @@ The default setting treats *all* users as untrusted.
 # The following settings may optionally be configured in app.cfg
 #
 
+ZPARK_CONTACT_INFO = None
+"""
+Sets the contact information for you, the bot owner, which will be displayed
+to any user that sends the "hello" command to the bot. This allows
+someone to determine who to reach if the bot is not responding or is
+encountering errors. The default setting of ``None`` will prevent any contact
+information from being displayed. Example::
+
+    ZPARK_CONTACT_INFO = 'Charlie Root (root@example.com)'
+
+.. versionadded:: 1.1.0
+"""
+
 #
 # Logging configuration. Default is to log to syslog using
 # the LOCAL6 facility.

@@ -134,6 +134,10 @@ def task_dispatch_spark_command(self, webhook_data):
     caller_dict = obj_to_dict(caller)
 
     dispatch_map = {
+        'hello': (
+            task_say_hello,
+            (room_dict, caller_dict)
+        ),
         'show issues': (
             task_report_zabbix_active_issues,
             (room_dict, caller_dict)
@@ -155,6 +159,44 @@ def task_dispatch_spark_command(self, webhook_data):
             ' with taskid {}'
             .format(cmd, msg.personEmail, task[0], asynctask.id))
     return True
+
+
+@celery_app.task(bind=True, default_retry_delay=20, max_retries=3)
+def task_say_hello(self, room, caller):
+    """
+    Send the "hello" message to a Spark space.
+
+    Args:
+        room: A :py:obj:`dict` that identifies the Spark space (room) where
+            the output should be sent. Note the identified room can be either
+            a group room (> 2 people) or a 1-on-1 room.
+        caller: A :py:obj:`dict` that has been built from the attributes of
+            a :py:obj:`ciscosparkapi.Person` object that identifies the Spark
+            user that requested this report. See also :py:func:`obj_to_dict`.
+
+    Raises:
+        :py:exc:`ciscosparkapi.SparkApiError`: The
+            Spark API returned an error and despite retrying the API call some
+            number of times, the error persisted.
+
+    """
+
+    text = jinja2.get_template('say_hello.txt').render(
+            caller=caller,
+            room=room,
+            zpark_contact_info=app.config['ZPARK_CONTACT_INFO'])
+    markdown = jinja2.get_template('say_hello.md').render(
+            caller=caller,
+            room=room,
+            zpark_contact_info=app.config['ZPARK_CONTACT_INFO'])
+    try:
+        task_send_spark_message(room, text, markdown)
+        logger.info('Said hello to {} in room "{}"'
+                .format(caller['emails'][0], room['title']))
+    except SparkApiError as e:
+        err = "The Spark API returned an error: {}".format(e)
+        logger.error(err)
+        self.retry(exc=e)
 
 
 @celery_app.task(bind=True, default_retry_delay=20, max_retries=3)

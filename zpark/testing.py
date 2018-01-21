@@ -1049,6 +1049,65 @@ class TaskTestCase(BaseTestCase):
 
         return my_spark_reply
 
+    @patch('zpark.tasks.task_send_spark_message')
+    def test_task_say_hello(self, mock_sendmsg):
+        """
+        A straightforward test of the "say hello" task.
+        This test should be successful and has no contrived conditions to cause
+        a failure.
+
+        Expected behavior:
+            - task_send_spark_message (mock) is called once to output the
+              hello message
+            - UUT returns None
+        """
+
+        room = obj_to_dict(self.build_fake_room_tuple())
+        caller = obj_to_dict(self.build_fake_person_tuple())
+
+        rv = zpark.tasks.task_say_hello(room, caller)
+
+        mock_sendmsg.assert_called_once()
+        for call in mock_sendmsg.call_args_list:
+            args, kwargs = call
+            # arg0 is the room object
+            self.assertEqual(room, args[0])
+            # arg1 is the text
+            self.assertIn('You can reach my caretaker', args[1])
+            # arg2 is the markdown
+            self.assertIn('You can reach my caretaker', args[2])
+        self.assertIsNone(rv)
+
+    def test_task_say_hello_retry(self):
+        """
+        A test of the "say hello" task that encounters a Spark API error
+        and must retry.
+
+        Expected behavior:
+            - task_send_spark_message (mock) receives a Spark API error when
+              first called. Second time, it's "successful".
+            - UUT is retried after the first attempt
+        """
+
+        room = obj_to_dict(self.build_fake_room_tuple())
+        caller = obj_to_dict(self.build_fake_person_tuple())
+
+        e = SparkApiError(409)
+
+        self.mock_spark_msg_create.side_effect = [e,
+                                                  self.build_spark_api_reply()]
+        mock_retry = patch('zpark.tasks.task_send_spark_message.retry',
+                           autospec=True)
+        mock_retry_patcher = mock_retry.start()
+        mock_retry_patcher.side_effect = Retry
+
+        with self.assertRaises(Retry):
+            zpark.tasks.task_say_hello(room, caller)
+
+        mock_retry_patcher.assert_called_with(exc=e)
+
+        mock_retry.stop()
+
     def test_task_send_spark_message_direct(self):
         to = obj_to_dict(self.build_fake_person_tuple())
         message = u'Your data center is on fire'
@@ -1489,6 +1548,29 @@ class TaskTestCase(BaseTestCase):
             rv = zpark.tasks.task_dispatch_spark_command(webhook_data)
 
             self.assertTrue(rv, "Failed with delim '{}'".format(d))
+
+
+    @patch('zpark.tasks.task_say_hello.apply_async')
+    def test_task_dispatch_spark_command_say_hello(self, mock_task):
+        """
+        Test dispatching of command "hello"
+
+        Expected behavior:
+            - The appropriate task is fired asynchronously
+        """
+
+        self.mock_spark_people_get.return_value = \
+                self.build_fake_person_tuple()
+        self.mock_spark_msg_get.return_value = \
+                self.build_fake_webhook_msg_tuple(text='Zpark hello')
+        self.mock_spark_rooms_get.return_value = self.build_fake_room_tuple()
+        webhook_data = json.loads(self.build_fake_webhook_json())
+
+        zpark.tasks.task_dispatch_spark_command(webhook_data)
+
+        mock_task.assert_called_once_with(args=(
+            obj_to_dict(self.mock_spark_rooms_get.return_value),
+            obj_to_dict(self.mock_spark_people_get.return_value)))
 
 
     @patch('zpark.tasks.task_report_zabbix_active_issues.apply_async')
