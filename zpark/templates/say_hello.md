@@ -2,7 +2,7 @@
 Hello <@personEmail:{{ caller.emails[0] }}|{{ caller.nickName }}>,
 
 {% endif %}
-I am a [Zpark bot](https://knightjoel.github.io/zpark). I relay alerts from a Zabbix server to Spark and I allow certain people to query information from Zabbix by sending me commands via Spark message.
+I am a [Zpark bot](https://knightjoel.github.io/zpark). I relay alerts from a [Zabbix](https://www.zabbix.com/product) server to Spark and I allow certain people to query information from Zabbix by sending me commands via Spark message.
 
 You can send these commands:
 - `show issues` - Show active Zabbix issues
