@@ -45,6 +45,7 @@ zpark\.tasks
    directive.
 
 .. autotask:: zpark.tasks.task_dispatch_spark_command
+.. autotask:: zpark.tasks.task_say_hello
 .. autotask:: zpark.tasks.task_send_spark_message
 .. autotask:: zpark.tasks.task_report_zabbix_active_issues
 .. autotask:: zpark.tasks.task_report_zabbix_server_status
