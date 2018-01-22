@@ -219,7 +219,7 @@ def task_send_spark_message(self, to, text, md=None):
             :py:obj:`ciscosparkapi.Room` object. See also
             :py:func:`obj_to_dict`.
         text (str): The text of the message to send.
-        md (str): The message to be sent with markup formatting.
+        md (str): The message to be sent with markdown formatting.
 
     Raises:
         :py:exc:`TypeError`: If the ``to`` argument is not a :py:obj:`dict`.
