@@ -181,6 +181,8 @@ def task_say_hello(self, room, caller):
             Spark API returned an error and despite retrying the API call some
             number of times, the error persisted.
 
+    .. versionadded:: 1.1.0
+
     """
 
     text = jinja2.get_template('say_hello.txt').render(
