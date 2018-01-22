@@ -19,7 +19,8 @@ class BaseTestCase(TestCase):
         zpark.app.config.update(
             DEBUG = False,
             TESTING = True,
-            ZPARK_API_TOKEN = 'token12345'
+            ZPARK_API_TOKEN = 'token12345',
+            ZPARK_CONTACT_INFO = 'Bot Owner owner@zpark',
         )
         # Disable webhook authentication for testing
         try:
@@ -1073,9 +1074,9 @@ class TaskTestCase(BaseTestCase):
             # arg0 is the room object
             self.assertEqual(room, args[0])
             # arg1 is the text
-            self.assertIn('You can reach my caretaker', args[1])
+            self.assertIn('My caretaker is Bot Owner', args[1])
             # arg2 is the markdown
-            self.assertIn('You can reach my caretaker', args[2])
+            self.assertIn('My caretaker is Bot Owner', args[2])
         self.assertIsNone(rv)
 
     def test_task_say_hello_retry(self):
