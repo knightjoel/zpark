@@ -242,9 +242,9 @@ def task_send_spark_message(self, to, text, md=None):
     try:
         msg = spark_api.messages.create(**msg)
 
-        logger.info("New Spark message created: toPersonEmail:{} "
-                    "roomId:{} messageId:{}"
-                        .format(msg.toPersonEmail, msg.roomId, msg.id))
+        logger.debug("New Spark message created: toPersonEmail:{} "
+                     "roomId:{} messageId:{}"
+                         .format(msg.toPersonEmail, msg.roomId, msg.id))
         return msg.id
     except SparkApiError as e:
         err = "The Spark API returned an error: {}".format(e)
