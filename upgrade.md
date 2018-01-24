@@ -10,7 +10,7 @@ The very last step is to restart the Zpark API and Celery worker processes.
 # supervisorctl restart zpark zpark_celery
 ```
 
-#### Installed using a git clone
+### Installed using a git clone
 
 Use git to sync with the Zpark Github repo and then checkout the latest
 version by specifying the correct tag.
@@ -21,10 +21,10 @@ version by specifying the correct tag.
 % git checkout v1.1.0
 ```
 
-Now read the section below for the version you're upgrading to for version-
-specific instructions.
+Now read the section below for the version you're upgrading to for
+version-specific instructions.
 
-#### Installed by downloading a release
+### Installed by downloading a release
 
 Download the latest release from
 [the list of releases](https://github.com/knightjoel/zpark/releases)
@@ -33,11 +33,11 @@ need to rename to `zpark`. **Do not delete your `app.cfg` file**; copy it
 from your old installation to the new one.
 
 ```
-<download the release>
+% <download the release>
 % cd /home/zpark
-% tar zxf ~/v1.0.0.tar.gz
+% tar zxf ~/v1.1.0.tar.gz
 % mv zpark zpark-old
-% mv zpark-1.0.0 zpark
+% mv zpark-1.1.0 zpark
 % cp zpark-old/app.cfg zpark/app.cfg
 ```
 
@@ -49,7 +49,7 @@ specific instructions.
 
 # Upgrade Notes
 
-### 1.0.0 to 1.1.0
+### v1.0.0 to v1.1.0
 
 - There is a new config setting named `ZPARK_CONTACT_INFO` which you may use
   to specify the name and/or contact information for the bot owner. This
@@ -69,3 +69,4 @@ to your `app.cfg` file:
 ZPARK_CONTACT_INFO = "Charlie Root (root@example.com)"
 ```
 
+Read the [v1.1.0 release notes](relnotes.html#v110).
