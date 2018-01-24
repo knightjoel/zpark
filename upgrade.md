@@ -47,7 +47,9 @@ you may delete the `zpark-old` directory.
 Now read the section below for the version you're upgrading to for version-
 specific instructions.
 
-#### 1.0.0 to 1.1.0
+# Upgrade Notes
+
+### 1.0.0 to 1.1.0
 
 - There is a new config setting named `ZPARK_CONTACT_INFO` which you may use
   to specify the name and/or contact information for the bot owner. This
