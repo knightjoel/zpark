@@ -10,7 +10,7 @@ The very last step is to restart the Zpark API and Celery worker processes.
 # supervisorctl restart zpark zpark_celery
 ```
 
-**Installed using a git clone**
+#### Installed using a git clone
 
 Use git to sync with the Zpark Github repo and then checkout the latest
 version by specifying the correct tag.
@@ -24,7 +24,7 @@ version by specifying the correct tag.
 Now read the section below for the version you're upgrading to for version-
 specific instructions.
 
-**Installed by downloading a release**
+#### Installed by downloading a release
 
 Download the latest release from
 [the list of releases](https://github.com/knightjoel/zpark/releases)
