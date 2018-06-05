@@ -238,7 +238,7 @@ The following settings **must** be configured:
 	for details on the URL syntax for your broker.
 
 	Example (for RabbitMQ):  
-	`CELERY_BROKER_URL = 'ampq://user:pass@hostname/vhost'`
+	`CELERY_BROKER_URL = 'amqp://user:pass@hostname/vhost'`
 
 - `ZABBIX_SERVER_URL`
 
