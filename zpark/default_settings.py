@@ -61,7 +61,7 @@ You can securely generate this token with the command::
 """
 
 
-CELERY_BROKER_URL = 'ampq://user:pass@hostname/vhost'
+CELERY_BROKER_URL = 'amqp://user:pass@hostname/vhost'
 """
 The URL by which Celery will access the message broker service. The example
 given is appropriate for a RabbitMQ broker. More information on brokers
