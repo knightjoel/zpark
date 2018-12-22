@@ -350,6 +350,15 @@ def task_report_zabbix_server_status(self, room, caller):
 
     """
 
+    try:
+        logger.debug('Querying Zabbix server at {} for API version'
+                .format(app.config['ZABBIX_SERVER_URL']))
+        api_ver = [int(n) for n in zabbix_api.api_version().split('.')]
+    except (AttributeError, ZabbixAPIException) as e:
+        notify_of_failed_command(room, caller,
+                                 self.request.retries, self.max_retries, e)
+        self.retry(exc=e)
+
     stats = {}
     try:
         logger.debug('Querying Zabbix server at {} for server status'
@@ -363,11 +372,14 @@ def task_report_zabbix_server_status(self, room, caller):
                 filter={'status':1}))
         stats['templates_cnt'] = int(zabbix_api.template.get(countOutput=1))
         # The dashboard actually shows items that are enabled, supported and
-        # associated with monitored hosts.
+        # associated with monitored hosts. Zabbix 3.4 also adds the count
+        # of templates to the "enabled items" count.
         stats['enabled_items_cnt'] = int(zabbix_api.item.get(
                 countOutput=1,
                 monitored=1,
                 filter={'status':0, 'state':0}))
+        if api_ver[0] >= 3 and api_ver[1] >= 4:
+            stats['enabled_items_cnt'] += stats['templates_cnt']
         # The dashboard actually shows items that are disabled, supported
         # or not supported, and that are not associated to templates.
         stats['disabled_items_cnt'] = int(zabbix_api.item.get(
