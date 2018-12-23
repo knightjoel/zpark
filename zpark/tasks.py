@@ -398,11 +398,9 @@ def task_report_zabbix_server_status(self, room, caller):
                 countOutput=1,
                 monitored=1,
                 filter={'status':0}))
-        # The dashboard actually shows triggers that are disabled and
-        # are "plain" (non discovered) triggers.
         stats['disabled_triggers_cnt'] = int(zabbix_api.trigger.get(
                 countOutput=1,
-                filter={'status':1, 'flags':0}))
+                filter={'status':1}))
         # The dashboard actually shows triggers that are enabled and
         # associated with monitored hosts.
         stats['ok_triggers_cnt'] = int(zabbix_api.trigger.get(
