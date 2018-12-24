@@ -1416,6 +1416,36 @@ class TaskTestCase(BaseTestCase):
 
     @patch('zpark.tasks.notify_of_failed_command')
     @patch('zpark.tasks.task_send_spark_message')
+    def test_task_report_zabbix_server_status_zbx_error2(self, mock_sendmsg,
+                                                         mock_notify):
+        """
+        Report the Zabbix server status to Spark in response to an assumed
+        "show status" command. This test mocks the Zabbix api_version API call
+        to throw an exception. This code path depends on retrieving the API
+        version to support version-specific behavior.
+
+        Expected behavior:
+            - task_report_zabbix_server_status() reraises the Zabbix API
+              exception
+            - Zabbix version API (mock) is called once to get the API version
+            - notify_of_failed_command() (mock) should be called once
+        """
+
+        self.mock_zabbixapi_version.side_effect = ZabbixAPIException('error')
+
+        room = self.build_fake_room_tuple()
+        caller = self.build_fake_person_tuple()
+
+        with self.assertRaises(ZabbixAPIException):
+            zpark.tasks.task_report_zabbix_server_status(
+                    room,
+                    caller)
+
+        self.mock_zabbixapi_version.assert_called_once()
+        mock_notify.assert_called_once()
+
+    @patch('zpark.tasks.notify_of_failed_command')
+    @patch('zpark.tasks.task_send_spark_message')
     def test_task_report_zabbix_server_status_retry_zbx_err(self, mock_sendmsg,
                                                             mock_notify):
         """
