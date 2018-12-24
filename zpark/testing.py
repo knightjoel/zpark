@@ -15,6 +15,8 @@ from zpark.utils import obj_to_dict
 
 class BaseTestCase(TestCase):
 
+    ZABBIX_VERSION = '3.4.0'
+
     def create_app(self):
         zpark.app.config.update(
             DEBUG = False,
@@ -1002,6 +1004,13 @@ class TaskTestCase(BaseTestCase):
                   autospec=True)
         self.mock_zabbixapi = self.mock_zabbixapi_patcher.start()
 
+        self.mock_zabbixapi_version_patcher = \
+            patch('zpark.pyzabbix.ZabbixAPI.api_version',
+                  autospec=True)
+        self.mock_zabbixapi_version = \
+            self.mock_zabbixapi_version_patcher.start()
+        self.mock_zabbixapi_version.return_value = BaseTestCase.ZABBIX_VERSION
+
         if False:
             import logging
             import sys
@@ -1031,6 +1040,10 @@ class TaskTestCase(BaseTestCase):
             pass
         try:
             self.mock_zabbixapi_patcher.stop()
+        except RuntimeError:
+            pass
+        try:
+            self.mock_zabbixapi_version_patcher.stop()
         except RuntimeError:
             pass
 
