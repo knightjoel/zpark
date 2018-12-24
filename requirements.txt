@@ -6,7 +6,7 @@ certifi==2017.7.27.1
 chardet==3.0.4
 ciscosparkapi==0.6.1
 click==6.7
-Flask==0.12.2
+Flask==0.12.4
 Flask-RESTful==0.3.6
 Flask-Testing==0.6.2
 funcsigs==1.0.2
@@ -14,7 +14,7 @@ future==0.16.0
 gunicorn==19.7.1
 idna==2.5
 itsdangerous==0.24
-Jinja2==2.9.6
+Jinja2==2.10
 kombu==4.1.0
 MarkupSafe==1.0
 mock==2.0.0
@@ -25,6 +25,6 @@ pyzabbix==0.7.4
 requests==2.20.0
 requests-toolbelt==0.8.0
 six==1.10.0
-urllib3==1.22
+urllib3==1.24.1
 vine==1.1.4
-Werkzeug==0.12.2
+Werkzeug==0.14.1
