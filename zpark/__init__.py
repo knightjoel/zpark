@@ -60,6 +60,7 @@ except ciscosparkapiException as e:
     spark_api = None
 
 zabbix_api = pyzabbix.ZabbixAPI(app.config['ZABBIX_SERVER_URL'])
+zabbix_api.session.verify = app.config['ZABBIX_TLS_CERT_VERIFY']
 try:
     zabbix_api.login(app.config['ZABBIX_USERNAME'],
                      app.config['ZABBIX_PASSWORD'])

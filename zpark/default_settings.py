@@ -222,3 +222,10 @@ Configures the format for messages logged by tasks that Celery is executing.
 Eg: a message might be emitted when a new Spark message is sent.
 """
 
+ZABBIX_TLS_CERT_VERIFY = True
+"""
+A boolean which controls whether the TLS certificate served by the Zabbix
+API is validated or not. If the Zabbix server is using a self-signed cert,
+this should be set to `False`.
+"""
+
