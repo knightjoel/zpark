@@ -1,5 +1,35 @@
 # Release Notes
 
+### v1.2.0
+
+- Upgrade third-party modules in response to security issues
+  - Requests 2.2.20 (CVE-2018-18074)
+  - urllib 1.23 (CVE-2018-20060)
+  - Flask 0.12.4 (CVE-2018-1000656)
+- Improved the output of "show status" when Zpark is talking to Zabbix 3.4+.
+  Stats better reflect what's shown in the Zabbix dashboard now. Note that
+  the count of disabled triggers doesn't match due to some behavioral
+  differences between the data returned by the Zabbix API vs the Zabbix
+  client/server protocol. There's not much that Zpark can do about that.
+- New setting `ZABBIX_TLS_CERT_VERIFY`. Set this to `False` if your Zabbix
+  installation uses a self-signed certificate. Defaults to `True`.
+- In order to aid troubleshooting, Zpark will emit a log entry when it
+  receives a command from a Spark user that isn't on the trusted users list.
+  This message is emitted at log level `DEBUG` which can be configured by
+  modifying the `API_LOG_HANDLER` setting.
+
+```
+API_LOG_HANDLER = {
+	'class': 'logging.handlers.SysLogHandler',
+	'address': '/dev/log',
+	'facility': 'local6',
+	'level': 'DEBUG'
+}
+```
+You shouldn't have logging set to `DEBUG` unless you're troubleshooting. It
+creates an opportunity for someone to fill your log file with their arbitrary
+commands.
+
 ### v1.1.0
 
 - The `SPARK_TRUSTED_USERS` config parameter now supports specifying
