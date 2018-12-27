@@ -18,7 +18,7 @@ version by specifying the correct tag.
 ```
 % cd /home/zpark/zpark
 % git fetch
-% git checkout v1.1.0
+% git checkout v1.2.0
 ```
 
 Now read the section below for the version you're upgrading to for
@@ -35,9 +35,9 @@ from your old installation to the new one.
 ```
 % <download the release>
 % cd /home/zpark
-% tar zxf ~/v1.1.0.tar.gz
+% tar zxf ~/v1.2.0.tar.gz
 % mv zpark zpark-old
-% mv zpark-1.1.0 zpark
+% mv zpark-1.2.0 zpark
 % cp zpark-old/app.cfg zpark/app.cfg
 ```
 
@@ -48,6 +48,19 @@ Now read the section below for the version you're upgrading to for version-
 specific instructions.
 
 # Upgrade Notes
+
+### To v1.2.0
+
+This release is mostly bug and security fixes.
+
+There is a new setting `ZABBIX_TLS_CERT_VERIFY` which controls whether
+Zpark will verify the TLS certificate served up by Zabbix (when Zabbix is
+configured for HTTPS). Set this to `False` when Zabbix is using a self-signed
+certificate.
+
+There are no special considerations for upgrading to v1.2.0.
+
+Read the [v1.2.0 release notes](relnotes.html#v120) for more information.
 
 ### v1.0.0 to v1.1.0
 
