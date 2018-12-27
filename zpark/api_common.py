@@ -104,6 +104,8 @@ def handle_spark_webhook(data):
             )
 
         if not authorize_webhook(data):
+            app.logger.debug("Received a command from unauthorized user"
+                    " {}".format(data['data']['personEmail']))
             return (
                 # Spark API will disable the webhook if it receives too many
                 # non 20x replies in a given time window. Since this code
