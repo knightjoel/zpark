@@ -227,5 +227,7 @@ ZABBIX_TLS_CERT_VERIFY = True
 A boolean which controls whether the TLS certificate served by the Zabbix
 API is validated or not. If the Zabbix server is using a self-signed cert,
 this should be set to `False`.
+
+.. versionadded:: 1.2.0
 """
 
