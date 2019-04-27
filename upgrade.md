@@ -18,7 +18,7 @@ version by specifying the correct tag.
 ```
 % cd /home/zpark/zpark
 % git fetch
-% git checkout v1.2.0
+% git checkout v1.2.1
 ```
 
 Now read the section below for the version you're upgrading to for
@@ -35,9 +35,9 @@ from your old installation to the new one.
 ```
 % <download the release>
 % cd /home/zpark
-% tar zxf ~/v1.2.0.tar.gz
+% tar zxf ~/v1.2.1.tar.gz
 % mv zpark zpark-old
-% mv zpark-1.2.0 zpark
+% mv zpark-1.2.1 zpark
 % cp zpark-old/app.cfg zpark/app.cfg
 ```
 
