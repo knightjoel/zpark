@@ -49,7 +49,7 @@ specific instructions.
 
 # Upgrade Notes
 
-### To v1.2.0
+### To v1.2.1
 
 This release is mostly bug and security fixes.
 
@@ -58,9 +58,10 @@ Zpark will verify the TLS certificate served up by Zabbix (when Zabbix is
 configured for HTTPS). Set this to `False` when Zabbix is using a self-signed
 certificate.
 
-There are no special considerations for upgrading to v1.2.0.
+There are no special considerations for upgrading to v1.2.1.
 
-Read the [v1.2.0 release notes](relnotes.html#v120) for more information.
+Read the [v1.2.0 release notes](relnotes.html#v120) and 
+[v1.2.1 release notes](relnotes.html#v121) for more information.
 
 ### v1.0.0 to v1.1.0
 

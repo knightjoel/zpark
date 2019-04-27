@@ -1,5 +1,13 @@
 # Release Notes
 
+### v1.2.1
+
+This is a security only release.
+
+- Upgrade third-party modules in response to security issues:
+  - urllib3 1.24.2 (CVE-2019-11324)
+  - Jinja2 2.10.1 (CVE-2019-10906)
+
 ### v1.2.0
 
 - Upgrade third-party modules in response to security issues
@@ -56,7 +64,7 @@ First release!
 - Configure Spark message recipients based on a combination of alert
   severity, time of day, host group, or other arbitrary criteria. eg:
   - Send all alerts to the Spark room "Network Engineers" between 0800-2000 Mon-Fri
-  - Send alerts with severity "critical" or higher to engineers Joe, Jill, and 
+  - Send alerts with severity "critical" or higher to engineers Joe, Jill, and
     Mark 24x7, using their Spark accounts "joe@example.com", "jill@example.com"
     and "mark@example.com".
 - Immediate notification of alerts. As soon as the bot receives an alert
