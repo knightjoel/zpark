@@ -1,7 +1,7 @@
 amqp==2.5.2
 aniso8601==1.2.1
 billiard==3.6.2.0
-celery==4.4.0
+celery==5.2.2
 certifi==2017.7.27.1
 chardet==3.0.4
 ciscosparkapi==0.6.1
