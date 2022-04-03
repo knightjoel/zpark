@@ -1,3 +1,9 @@
+⚠ This project is no longer maintained. The repo is archived but remains visible for reference.
+
+🚨This project's dependencies contain **known security vulnerabilities**.
+
+---
+
 Zpark is a bot that provides an interface between the [Cisco
 Spark](https://www.ciscospark.com) messaging platform and the
 [Zabbix](https://www.zabbix.com) monitoring system.
